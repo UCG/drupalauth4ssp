@@ -5,3 +5,10 @@ drupalauth4ssp.settings:
     _form: 'Drupal\drupalauth4ssp\Form\SettingsForm'
   requirements:
     _permission: 'administer drupalauth4ssp configuration'
+drupalauth4ssp.ssoLogin:
+  path: '/ssoLogin'
+  defaults:
+    _form: '\Drupal\user\Form\UserLoginForm'
+    _title: 'Log in'
+  requirements:
+    _user_is_logged_in: 'FALSE'

@@ -21,11 +21,8 @@ use Drupal\user\Entity\User;
  * Sets a special cookie for drupalauth SimpleSAMLphp module.
  */
 function drupalauth4ssp_user_login($account) {
-  $isSsoEnabled = User::load($account->id())
-    ->get('field_sso_enabled_user')
-    ->value;
-  // Only set cookie if user is allowed to log in to the SSO system!
-  if ($isSsoEnabled) {
+  // Only set cookie if we are performing an SP-initiated SSO login.
+  if (_drupalauth4ssp_is_current_route_sso_login_route()) {
     drupalauth4ssp_set_user_cookie($account);
   }
 }
@@ -146,23 +143,16 @@ function _drupalauth4ssp_get_simplesamlphp_config() {
  * Implements hook_form_FORM_ID_alter().
  */
 function drupalauth4ssp_form_user_login_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
-  $form['#submit'][] = 'drupalauth4ssp_user_login_submit';
+  // Don't do SSO logic unless the login route is the SP-initiated SSO route.
+  if (_drupalauth4ssp_is_current_route_sso_login_route()) {
+    $form['#submit'][] = 'drupalauth4ssp_user_login_submit';
+  }
 }
 
 /**
  * Sets redirect upon successful login.
  */
 function drupalauth4ssp_user_login_submit($form, \Drupal\Core\Form\FormStateInterface $form_state) {
-  // Check to see if this is an SSO-enabled user.
-  $isSsoEnabled = reset(\Drupal::service('entity_type.manager')
-    ->getStorage('user')
-    ->loadByProperties(['name' => $form_state->getValue('name')]))
-    ->get('field_sso_enabled_user')
-    ->value;
-    // Don't bother proceeding if SSO is not enabled for this user.
-    if (!$isSsoEnabled)
-      return;
-
   // If the ReturnTo URL is present, send the user to the URL.
   $returnTo = \Drupal::request()->query->get('ReturnTo');
   if (!empty($returnTo)) {
@@ -174,4 +164,8 @@ function drupalauth4ssp_user_login_submit($form, \Drupal\Core\Form\FormStateInte
       $form_state->setRedirectUrl(Url::fromUri($returnTo));
     }
   }
+}
+
+function _drupalauth4ssp_is_current_route_sso_login_route() {
+  return \Drupal::routeMatch()->getRouteName() == 'ssoLogin';
 }
