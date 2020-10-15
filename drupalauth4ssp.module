@@ -172,5 +172,5 @@ function drupalauth4ssp_user_login_submit($form, \Drupal\Core\Form\FormStateInte
  * @return bool 'TRUE' if SP-initiated SSO route, else 'FALSE'.
  */
 function _drupalauth4ssp_is_current_route_sso_login_route() {
-  return \Drupal::routeMatch()->getRouteName() == 'ssoLogin';
+  return \Drupal::routeMatch()->getRouteName() == 'drupalauth4ssp.ssoLogin';
 }
