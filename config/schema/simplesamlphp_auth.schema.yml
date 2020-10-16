@@ -1,0 +1,10 @@
+drupalauth4ssp.settings:
+  type: config_object
+  label: DrupalAuth for SimpleSamlPHP settings
+  mapping:
+    authsource:
+      type: string
+      label: Authentication source for this IdP
+    returnto_list:
+      type: string
+      label: "Valid 'ReturnTo' URLs"

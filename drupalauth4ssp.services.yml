@@ -2,7 +2,6 @@ services:
   config:
     class: Drupal\drupalauth4ssp\Config
     arguments: ['@config.factory']
-
   drupalauth4ssp.sso_login_route_interceptor_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\SsoLoginRouteInterceptor
     arguments: ['@current_user', '@drupalauth4ssp.account_validator', '@drupalauth4ssp.return_url_manager']

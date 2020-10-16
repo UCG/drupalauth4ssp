@@ -25,7 +25,7 @@ class ChainedAccountValidator implements AccountValidatorInterface {
    * Adds a validator to the chain of validators.
    *
    * @param AccountValidatorInterface $validator
-   *   Validator to add
+   *   Validator to add.
    * @return void
    */
   public function addValidator(AccountValidatorInterface $validator) : void {
