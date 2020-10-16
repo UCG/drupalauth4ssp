@@ -5,7 +5,6 @@ services:
 
   drupalauth4ssp.event_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\DrupalAuthForSSPSubscriber
-    arguments: ['@current_user']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.login_route_interceptor_subscriber:

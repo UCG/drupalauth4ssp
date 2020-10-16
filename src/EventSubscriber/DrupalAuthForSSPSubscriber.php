@@ -16,11 +16,11 @@ use Symfony\Component\HttpKernel\KernelEvents;
 class DrupalAuthForSSPSubscriber implements EventSubscriberInterface {
 
   /**
-   * Account proxy.
+   * Account.
    *
    * @var \Drupal\Core\Session\AccountProxyInterface
    */
-  protected $accountProxy;
+  protected $account_proxy;
 
   /**
    * Constructs event subscriber.
@@ -29,7 +29,7 @@ class DrupalAuthForSSPSubscriber implements EventSubscriberInterface {
    *   Account proxy.
    */
   public function __construct(AccountProxyInterface $account_proxy) {
-    $this->accountProxy = $account_proxy;
+    $this->account_proxy = $account_proxy;
   }
 
   /**
@@ -53,15 +53,6 @@ class DrupalAuthForSSPSubscriber implements EventSubscriberInterface {
         $response->setTargetUrl($destination);
         $event->stopPropagation();
         return;
-      }
-
-      // If this was request to login and user was authenticated by cookie.
-      $returnTo = $event->getRequest()->query->get('ReturnTo');
-      $isLoginRequest = $event->getRequest()->attributes->get('_route') === 'user.login';
-      if ($isLoginRequest && $responseIsHttpFound && $returnTo) {
-        drupalauth4ssp_set_user_cookie($this->accountProxy);
-        $response->setTargetUrl($returnTo);
-        $event->stopPropagation();
       }
     }
   }
