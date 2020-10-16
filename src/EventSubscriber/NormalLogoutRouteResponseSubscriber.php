@@ -1,0 +1,118 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace Drupal\drupalauth4ssp\EventSubscriber;
+
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Url;
+use SimpleSAML\Auth\Simple;
+use SimpleSAML\Session;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\KernelEvents;
+
+/**
+ * Ensures single-logout is initiated (if applicable) for non-SSO logout routes.
+ *
+ * Normally, logging out through the default route ('user.logout') will destory
+ * the simpleSAMLphp session, but not log out all the service providers. Hence,
+ * we subscribe to the RESPONSE event in order to ensure "single logout" (a
+ * feature of simpleSAMLphp enabling automatic log out of all service providers)
+ * is initiated, using a redirect, after the normal logout procedure has been
+ * completed, if there is an IdP session (after first destroying this session).
+ */
+class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
+
+  /**
+   * DrupalAuth for SimpleSamlPHP configuration.
+   *
+   * @var \Drupal\Core\Config\ImmutableConfig
+   */
+  protected $configuration;
+
+  /**
+   * Creates a normal logout route response subscriber instance.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
+   *   Configuration factory
+   */
+  public function __construct(ConfigFactoryInterface $configurationFactory) {
+    $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
+  }
+
+  /**
+   * Handles response event for standard logout routes.
+   *
+   *
+   * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
+   *   Response event.
+   * @return void
+   * @throws \SimpleSAML\Error\CriticalConfigurationError
+   *   Thrown if something was wrong with the simpleSAMLphp configuration.
+   */
+  public function handleNormalLogoutResponse($event) : void {
+    if (!$event->isMasterRequest()) {
+      return;
+    }
+    $request = $event->getRequest();
+
+    // If we're not using the default logout route, get out.
+    if ($request->attributes->get('_route') != 'user.logout') {
+      return;
+    }
+
+    // If this is a 302 or 303 redirect response, grab the redirect URL and use
+    // it as a return URL.
+    $response = $event->getResponse();
+    if ($response instanceof RedirectResponse) {
+      $statusCode = $response->getStatusCode();
+      if ($statusCode == Response::HTTP_FOUND || $statusCode == Response::HTTP_SEE_OTHER) {
+        $returnUrl = $response->getTargetUrl();
+      }
+    }
+    // If we have a non-empty return URL, we'll try to use that for the
+    // 'ReturnTo' URL. Otherwise, we'll use the home page.
+    if (empty($returnUrl)) {
+      $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
+    }
+
+    // Try to create the simpleSAMLphp instance.
+    $simpleSaml = new Simple($this->configuration->get('authsource'));
+    // Destroy session and initiate single logout if unauthenticated.
+    if ($simpleSaml->isAuthenticated()) {
+      // Taken from drupalauth4ssp.module in the non-forked version.
+      // Invalidate SimpleSAML session by expiring it.
+      $session = Session::getSessionFromRequest();
+      // Backward compatibility with SimpleSAMP older than 1.14.
+      // SimpleSAML_Session::getAuthority() has been removed in 1.14.
+      // @see https://simplesamlphp.org/docs/development/simplesamlphp-upgrade-notes-1.14
+      if (method_exists($session, 'getAuthority')) {
+        $session->setAuthorityExpire($session->getAuthority(), 1);
+      }
+      else {
+        foreach ($session->getAuthorities() as $authority) {
+          $session->setAuthorityExpire($authority, 1);
+        }
+      }
+
+      // Now go ahead and initiate single logout.
+      // Build the single logout URL.
+      $hostname = $request->getHost();
+      $queryString = http_build_query(['ReturnTo' => $returnUrl]);
+      $singleLogoutUrl = 'https://' . $hostname . '/simplesaml/saml2/idp/SingleLogoutService.php?' . $queryString;
+      // Redirect to the single logout URL
+      $event->setResponse(new RedirectResponse($singleLogoutUrl));
+      $event->stopPropagation();
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getSubscribedEvents() {
+    return [KernelEvents::RESPONSE => ['handleNormalLogoutResponse']];
+  }
+
+}
