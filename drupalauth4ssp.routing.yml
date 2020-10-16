@@ -11,4 +11,10 @@ drupalauth4ssp.ssoLogin:
     _form: '\Drupal\user\Form\UserLoginForm'
     _title: 'Log in'
   requirements:
-    _user_is_logged_in: 'FALSE'
+    _access: 'TRUE'
+drupalauth4ssp.ssoLogout:
+  path: '/ssoLogout'
+  defaults:
+    _controller: '\Drupal\drupalauth4ssp\Controller\LogoutController::logout'
+  requirements:
+    _access: 'TRUE'
