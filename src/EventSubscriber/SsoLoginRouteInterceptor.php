@@ -90,8 +90,8 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
       // We have an SSO-enabled user! We will have to try to pass on his ID.
       drupalauth4ssp_set_user_cookie($this->account);
       // Now, redirect the user to the 'ReturnTo' URL if possible.
-      if ($returnToUrlManager->isReturnUrlValid()) {
-        $event->setResponse(new RedirectResponse($returnToUrlManager->getReturnUrl()));
+      if ($this->returnToUrlManager->isReturnUrlValid()) {
+        $event->setResponse(new RedirectResponse($this->returnToUrlManager->getReturnUrl()));
       }
       else {
         // Return 403.
