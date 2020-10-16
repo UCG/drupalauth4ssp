@@ -15,6 +15,6 @@ drupalauth4ssp.ssoLogin:
 drupalauth4ssp.ssoLogout:
   path: '/ssoLogout'
   defaults:
-    _controller: '\Drupal\drupalauth4ssp\Controller\LogoutController::logout'
+    _controller: '\Drupal\drupalauth4ssp\Controller\SsoLogoutController::handle'
   requirements:
     _access: 'TRUE'
