@@ -2,7 +2,6 @@
 
 namespace Drupal\drupalauth4ssp\EventSubscriber;
 
-use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -14,23 +13,6 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * DrupalAuth for SimpleSAMLphp event subscriber.
  */
 class DrupalAuthForSSPSubscriber implements EventSubscriberInterface {
-
-  /**
-   * Account.
-   *
-   * @var \Drupal\Core\Session\AccountProxyInterface
-   */
-  protected $account_proxy;
-
-  /**
-   * Constructs event subscriber.
-   *
-   * @param \Drupal\Core\Session\AccountProxyInterface $account_proxy
-   *   Account proxy.
-   */
-  public function __construct(AccountProxyInterface $account_proxy) {
-    $this->account_proxy = $account_proxy;
-  }
 
   /**
    * Kernel response event handler.
