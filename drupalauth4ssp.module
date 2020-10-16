@@ -156,16 +156,10 @@ function drupalauth4ssp_form_user_login_form_alter(&$form, \Drupal\Core\Form\For
  * Sets redirect upon successful login.
  */
 function drupalauth4ssp_user_login_submit($form, \Drupal\Core\Form\FormStateInterface $form_state) {
-  // If the ReturnTo URL is present, send the user to the URL.
-  $returnTo = \Drupal::request()->query->get('ReturnTo');
-  if (!empty($returnTo)) {
-    $returnto_list = \Drupal::service('config.factory')->get('drupalauth4ssp.settings')->get('returnto_list');
-    $path_matcher = \Drupal::service('path.matcher');
-    // Check the ReturnTo if it's in the allowed list.
-    $match = $path_matcher->matchPath($returnTo, $returnto_list);
-    if ($match) {
-      $form_state->setRedirectUrl(Url::fromUri($returnTo));
-    }
+  // If the ReturnTo URL is okay, send the user to the URL.
+  $returnToUrlManager = \Drupal::service('drupalauth4ssp.return_url_manager');
+  if ($returnToUrlManager->isReturnUrlValid()) {
+    $form_state->setRedirectUrl(Url::fromUri($returnToUrlManager->getReturnUrl()));
   }
 }
 
