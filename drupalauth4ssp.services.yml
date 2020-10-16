@@ -8,3 +8,12 @@ services:
     arguments: ['@current_user']
     tags:
       - { name: event_subscriber }
+  drupalauth4ssp.login_route_interceptor_subscriber:
+    class: Drupal\drupalauth4ssp\EventSubscriber\LoginRouteInterceptor
+    arguments: ['@current_user', '@entity_type.manager', '@config.factory', '@path.matcher', '@drupalauth4ssp.account_validator']
+    tags:
+      - { name: event_subscriber }
+  drupalauth4ssp.account_validator:
+    class: Drupal\drupalauth4ssp\ChainedAccountValidator
+    tags:
+      - { name: service_collector, tag: 'drupalauth4ssp.account_validator.sub_validator', call: addValidator }
