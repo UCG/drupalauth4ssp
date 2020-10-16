@@ -63,25 +63,26 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // If this is a 302 or 303 redirect response, grab the redirect URL and use
-    // it as a return URL.
-    $response = $event->getResponse();
-    if ($response instanceof RedirectResponse) {
-      $statusCode = $response->getStatusCode();
-      if ($statusCode == Response::HTTP_FOUND || $statusCode == Response::HTTP_SEE_OTHER) {
-        $returnUrl = $response->getTargetUrl();
-      }
-    }
-    // If we have a non-empty return URL, we'll try to use that for the
-    // 'ReturnTo' URL. Otherwise, we'll use the home page.
-    if (empty($returnUrl)) {
-      $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
-    }
-
     // Try to create the simpleSAMLphp instance.
     $simpleSaml = new Simple($this->configuration->get('authsource'));
-    // Destroy session and initiate single logout if unauthenticated.
+    // Proceed only if authenticated.
     if ($simpleSaml->isAuthenticated()) {
+      // If this is a 302 or 303 redirect response, grab the redirect URL and use
+      // it as a return URL.
+      $response = $event->getResponse();
+      if ($response instanceof RedirectResponse) {
+        $statusCode = $response->getStatusCode();
+        if ($statusCode == Response::HTTP_FOUND || $statusCode == Response::HTTP_SEE_OTHER) {
+          $returnUrl = $response->getTargetUrl();
+        }
+      }
+      // If we have a non-empty return URL, we'll try to use that for the
+      // 'ReturnTo' URL. Otherwise, we'll use the home page.
+      if (empty($returnUrl)) {
+        $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
+      }
+
+      // Destroy session and initiate single logout.
       // Taken from drupalauth4ssp.module in the non-forked version.
       // Invalidate SimpleSAML session by expiring it.
       $session = Session::getSessionFromRequest();
