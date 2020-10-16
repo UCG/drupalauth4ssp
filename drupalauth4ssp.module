@@ -23,7 +23,10 @@ use Drupal\user\Entity\User;
 function drupalauth4ssp_user_login($account) {
   // Only set cookie if we are performing an SP-initiated SSO login.
   if (_drupalauth4ssp_is_current_route_sso_login_route()) {
-    drupalauth4ssp_set_user_cookie($account);
+    // Double check to ensure user is SSO-enabled.
+    if (\Drupal::service('drupalauth4ssp.account_validator')->isAccountValid($account)) {
+      drupalauth4ssp_set_user_cookie($account);
+    }
   }
 }
 
