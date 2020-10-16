@@ -9,8 +9,10 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\drupalauth4ssp\AccountValidatorInterface;
 use SimpleSAML\Auth\Simple;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Ensures SSP login is initiated (if applicable) for non-SSO login routes.
@@ -23,7 +25,7 @@ use Symfony\Component\HttpFoundation\Response;
  * authentication with the 'ReturnURL' parameter set to the redirect URL (or to
  * the home page if no such URL exists).
  */
-class NormalLoginRouteResponseSubscriber {
+class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
 
   /**
    * Account.
@@ -81,17 +83,21 @@ class NormalLoginRouteResponseSubscriber {
     if ($request->attributes->get('_route') != 'user.login') {
       return;
     }
-    // Ignore anonymous users.
+    // Ignore anonymous users - we don't want to do anything until we have
+    // actually logged in.
     if ($this->account->isAnonymous()) {
       return;
     }
 
     // See if user is SSO-enabled.
     if ($this->accountValidator->isAccountValid($this->account)) {
-      // If this is a 302 redirect response, grab the redirect URL.
+      // If this is a 302 or 303 redirect response, grab the redirect URL.
       $response = $event->getResponse();
-      if ($response instanceof RedirectResponse && $response->getStatusCode() == Response::HTTP_FOUND) {
-        $redirectUrl = $response->getTargetUrl();
+      if ($response instanceof RedirectResponse) {
+        $statusCode = $response->getStatusCode();
+        if ($statusCode == Response::HTTP_FOUND || $statusCode == Response::HTTP_SEE_OTHER) {
+          $redirectUrl = $response->getTargetUrl();
+        }
       }
       // If we have a non-empty redirect URL, we'll try to use that for the
       // 'ReturnTo' URL. Otherwise, we'll use the home page.
@@ -102,7 +108,7 @@ class NormalLoginRouteResponseSubscriber {
       // Try to create the simpleSAMLphp instance.
       $simpleSaml = new Simple($this->configuration->get('authsource'));
       // Initiate authentication.
-      $simpleSaml->requireAuth(['ReturnTo' => $redirectUrl]);
+      $simpleSaml->requireAuth(['ReturnTo' => $redirectUrl, 'KeepPost' => 'FALSE']);
     }
   }
 
