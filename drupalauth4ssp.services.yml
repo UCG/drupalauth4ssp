@@ -7,12 +7,20 @@ services:
     class: Drupal\drupalauth4ssp\EventSubscriber\DrupalAuthForSSPSubscriber
     tags:
       - { name: event_subscriber }
-  drupalauth4ssp.login_route_interceptor_subscriber:
-    class: Drupal\drupalauth4ssp\EventSubscriber\LoginRouteInterceptor
-    arguments: ['@current_user', '@entity_type.manager', '@config.factory', '@path.matcher', '@drupalauth4ssp.account_validator']
+  drupalauth4ssp.sso_login_route_interceptor_subscriber:
+    class: Drupal\drupalauth4ssp\EventSubscriber\SsoLoginRouteInterceptor
+    arguments: ['@current_user', '@drupalauth4ssp.account_validator', '@drupalauth4ssp.return_url_manager']
+    tags:
+      - { name: event_subscriber }
+  drupalauth4ssp.normal_login_response_subscriber:
+    class: Drupal\drupalauth4ssp\EventSubscriber\NormalLoginRouteResponseSubscriber
+    arguments: ['@current_user', '@drupalauth4ssp.account_validator', '@config.factory']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.account_validator:
     class: Drupal\drupalauth4ssp\ChainedAccountValidator
     tags:
       - { name: service_collector, tag: 'drupalauth4ssp.account_validator.sub_validator', call: addValidator }
+  drupalauth4ssp.return_url_manager:
+    class: Drupal\drupalauth4ssp\Helper\ReturnToUrlManager
+    arguments: ['@path.matcher', '@config.factoy', '@request_stack']
