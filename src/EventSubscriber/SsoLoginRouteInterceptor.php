@@ -4,13 +4,12 @@ declare(strict_types = 1);
 
 namespace Drupal\drupalauth4ssp\EventSubscriber;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\drupalauth4ssp\AccountValidatorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Handles SSO log in route when user is already logged in or out.
@@ -25,35 +24,14 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * valid Drupal session at the IdP).
  *
  */
-class LoginRouteInterceptor implements EventSubscriberInterface {
+class SsoLoginRouteInterceptor implements EventSubscriberInterface {
 
-    /**
+  /**
    * Account.
    *
    * @var \Drupal\Core\Session\AccountInterface
    */
   protected $account;
-
-  /**
-   * Entity type manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected $entityTypeManager;
-
-  /**
-   * DrupalAuth for SimpleSamlPHP configuration.
-   *
-   * @var \Drupal\Core\Config\ImmutableConfig
-   */
-  protected $configuration;
-
-  /**
-   * Path matcher.
-   *
-   * @var \Drupal\Core\Path\PathMatcherInterface
-   */
-  protected $pathMatcher;
 
   /**
    * Validator used to ensure account is SSO-enabled.
@@ -63,29 +41,30 @@ class LoginRouteInterceptor implements EventSubscriberInterface {
   protected $accountValidator;
 
   /**
+   * Helper service to obtain and determine if 'ReturnTo' URL can be used.
+   *
+   * @var \Drupal\drupalauth4ssp\Helper\ReturnToUrlManager;
+   */
+  protected $returnToUrlManager;
+
+  /**
    * Creates a login route interceptor instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   *   Entity type manager
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
-   *   Configuration factory
-   * @param \Drupal\Core\Path\PathMatcherInterface $pathMatcher
-   *   Path matcher
    * @param \Drupal\drupalauth4ssp\AccountValidatorInterface $accountValidator
    *   Account validator
+   * @param \Drupal\drupalauth4ssp\Helper\ReturnToUrlManager $returnToUrlManager
+   *   Helper service to obtain and determine if 'ReturnTo' URL can be used
    */
-  public function __construct(AccountInterface $account, EntityTypeManagerInterface $entityTypeManager, ConfigFactoryInterface $configurationFactory, PathMatcherInterface $pathMatcher, AccountValidatorInterface $accountValidator) {
+  public function __construct(AccountInterface $account, AccountValidatorInterface $accountValidator, $returnToUrlManager) {
     $this->account = $account;
-    $this->entityTypeManager = $entityTypeManager;
-    $this->pathMatcher = $pathMatcher;
     $this->accountValidator = $accountValidator;
-    $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
+    $this->returnToUrlManager = $returnToUrlManager;
   }
 
   /**
-   * React to request event.
+   * Reacts to request event.
    *
    * If we are on the SSO login route, checks to see if user is already logged
    * in. If so, checks if current user can be used to perform simpleSAMLphp
@@ -103,19 +82,20 @@ class LoginRouteInterceptor implements EventSubscriberInterface {
       return;
     }
     // If user is anonymous, get out of here.
-    if ($this->account->id == 0) {
+    if ($this->account->isAnonymous()) {
       return;
     }
     // Otherwise, check to see if we are allowed to perform SSO login.
-    if ($this->accountValidator->isAccountValid($account)) {
+    if ($this->accountValidator->isAccountValid($this->account)) {
       // We have an SSO-enabled user! We will have to try to pass on his ID.
-      drupalauth4ssp_set_user_cookie($account);
-      // Now, redirect the user. This is adapted from
-      // drupalauth4ssp_user_login_submit() in drupalauth4ssp.module.
-      $returnToUrl = $request->query->get('ReturnTo');
-      $returnToAllowedList = $this->configuration->get('returnto_list');
-      if ($pathMatcher->matchPath($returnToUrl, $returnToAllowedList)) {
-        $event->setResponse(new RedirectResponse($returnToUrl));
+      drupalauth4ssp_set_user_cookie($this->account);
+      // Now, redirect the user to the 'ReturnTo' URL if possible.
+      if ($returnToUrlManager->isReturnUrlValid()) {
+        $event->setResponse(new RedirectResponse($returnToUrlManager->getReturnUrl()));
+      }
+      else {
+        // Return 403.
+        throw new AccessDeniedHttpException('Cannot access SSO login route from authenticated user without return URL.');
       }
     }
     else {
