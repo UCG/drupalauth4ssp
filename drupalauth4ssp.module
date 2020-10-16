@@ -78,34 +78,6 @@ function drupalauth4ssp_user_logout($account) {
   // Delete the cookie.
   $hash = Crypt::hmacBase64($account->id(), $ssp_config['secretsalt'] . \Drupal::service('private_key')->get());
   setcookie($ssp_config['cookie_name'], $hash . ':' . $account->id(), time() - 3600, $ssp_config['baseurlpath']);
-
-  // Invalidate SimpleSAML session by expiring it.
-  $session = Session::getSessionFromRequest();
-  // Backward compatibility with SimpleSAMP older than 1.14.
-  // SimpleSAML_Session::getAuthority() has been removed in 1.14.
-  // @see https://simplesamlphp.org/docs/development/simplesamlphp-upgrade-notes-1.14
-  if (method_exists($session, 'getAuthority')) {
-    $session->setAuthorityExpire($session->getAuthority(), 1);
-  }
-  else {
-    foreach ($session->getAuthorities() as $authority) {
-      $session->setAuthorityExpire($authority, 1);
-    }
-  }
-
-  $request = \Drupal::request();
-  $returnTo = $request->query->get('ReturnTo');
-  // If the ReturnTo URL is present, send the user to the URL.
-  if (!empty($returnTo)) {
-
-    $returnto_list = \Drupal::service('config.factory')->get('drupalauth4ssp.settings')->get('returnto_list');
-    $path_matcher = \Drupal::service('path.matcher');
-    // Check the ReturnTo if it's in the allowed list.
-    if ($path_matcher->matchPath($returnTo, $returnto_list)) {
-      $destination = &drupal_static(__FUNCTION__);
-      $destination = $returnTo;
-    }
-  }
 }
 
 /**
