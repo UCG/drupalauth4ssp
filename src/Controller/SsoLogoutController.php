@@ -46,7 +46,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   Request stack.
    * @param \Drupal\drupalauth4ssp\Helper\ReturnToUrlManager $returnToUrlManager
-   *   Helper service to obtain and determine if 'ReturnTo' URL can be used
+   *   Helper service to obtain and determine if 'ReturnTo' URL can be used.
    */
   public function __construct(AccountInterface $account, $requestStack, $returnToUrlManager) {
     $this->account = $account;
