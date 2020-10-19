@@ -52,11 +52,11 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    * Creates a normal login route response subscriber instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
-   *   Account
+   *   Account.
    * @param \Drupal\drupalauth4ssp\AccountValidatorInterface $accountValidator
-   *   Account validator
+   *   Account validator.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
-   *   Configuration factory
+   *   Configuration factory.
    */
   public function __construct(AccountInterface $account, AccountValidatorInterface $accountValidator, ConfigFactoryInterface $configurationFactory) {
     $this->account = $account;
@@ -78,6 +78,9 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    */
   public function handleNormalLoginResponse($event) : void {
     $request = $event->getRequest();
+    if (!$event->isMasterRequest()) {
+      return;
+    }
 
     // If we're not using the default login route, get out.
     if ($request->attributes->get('_route') != 'user.login') {

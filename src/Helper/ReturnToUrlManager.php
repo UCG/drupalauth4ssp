@@ -40,11 +40,11 @@ class ReturnToUrlManager {
    * Creates a new \Drupal\drupalauth4ssp\Helper\ReturnToUrlManager object.
    *
    * @param \Drupal\Core\Path\PathMatcherInterface $pathMatcher
-   *   Path mtcher
+   *   Path mtcher.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
-   *   Configuration factory
+   *   Configuration factory.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
-   *   Request stack
+   *   Request stack.
    */
   public function __construct(PathMatcherInterface $pathMatcher, ConfigFactoryInterface $configurationFactory, $requestStack) {
     $this->pathMatcher = $pathMatcher;

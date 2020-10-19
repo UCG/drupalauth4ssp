@@ -36,7 +36,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    * Creates a normal logout route response subscriber instance.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
-   *   Configuration factory
+   *   Configuration factory.
    */
   public function __construct(ConfigFactoryInterface $configurationFactory) {
     $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');

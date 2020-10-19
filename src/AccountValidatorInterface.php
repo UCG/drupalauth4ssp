@@ -17,7 +17,7 @@ interface AccountValidatorInterface {
    * Checks to see if this account is SSO-enabled.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
-   *   Account to check
+   *   Account to check.
    * @return bool 'TRUE' if account is SSO-enabled; else 'FALSE'
    */
   public function isAccountValid(AccountInterface $account) : bool;
