@@ -6,6 +6,7 @@ namespace Drupal\drupalauth4ssp\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Url;
+use Drupal\Core\Session\AccountInterface;
 use SimpleSAML\Auth\Simple;
 use SimpleSAML\Session;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -32,14 +33,24 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    */
   protected $configuration;
 
+    /**
+   * Account.
+   *
+   * @var \Drupal\Core\Session\AccountInterface
+   */
+  protected $account;
+
   /**
    * Creates a normal logout route response subscriber instance.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
    *   Configuration factory.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   Account.
    */
-  public function __construct(ConfigFactoryInterface $configurationFactory) {
+  public function __construct(AccountInterface $account, ConfigFactoryInterface $configurationFactory) {
     $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
+    $this->account = $account;
   }
 
   /**
@@ -60,6 +71,10 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
 
     // If we're not using the default logout route, get out.
     if ($request->attributes->get('_route') != 'user.logout') {
+      return;
+    }
+    // If we haven't actually logged out, get out
+    if (!$this->account->isAnonymous()) {
       return;
     }
 
