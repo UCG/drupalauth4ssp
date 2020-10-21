@@ -14,7 +14,7 @@ services:
       - { name: event_subscriber }
   drupalauth4ssp.normal_logout_response_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutRouteResponseSubscriber
-    arguments: ['@config.factory', '@current_user']
+    arguments: ['@current_user', '@config.factory']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.account_validator:
