@@ -17,6 +17,11 @@ services:
     arguments: ['@current_user', '@config.factory']
     tags:
       - { name: event_subscriber }
+  drupalauth4ssp.session_synchronization_interceptor_subscriber:
+    class: Drupal\drupalauth4ssp\EventSubscriber\SessionSynchronizationInterceptor
+    arguments: ['@current_user', '@drupalauth4ssp.account_validator', '@config.factory', '@entity_type.manager', '@module_handler', '@session_manager', '@session']
+    tags:
+      - { name: event_subscriber }
   drupalauth4ssp.account_validator:
     class: Drupal\drupalauth4ssp\ChainedAccountValidator
     tags:
