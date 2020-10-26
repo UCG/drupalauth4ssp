@@ -7,6 +7,7 @@ namespace Drupal\drupalauth4ssp\EventSubscriber;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\drupalauth4ssp\Helper\UrlHelpers;
 use SimpleSAML\Auth\Simple;
 use SimpleSAML\Session;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -115,9 +116,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
 
       // Now go ahead and initiate single logout.
       // Build the single logout URL.
-      $hostname = $request->getHost();
-      $queryString = http_build_query(['ReturnTo' => $returnUrl]);
-      $singleLogoutUrl = 'https://' . $hostname . '/simplesaml/saml2/idp/SingleLogoutService.php?' . $queryString;
+      $singleLogoutUrl = UrlHelpers::generateSloUrl($request->getHost(), $returnUrl);
       // Redirect to the single logout URL
       $event->setResponse(new RedirectResponse($singleLogoutUrl));
       $event->stopPropagation();
