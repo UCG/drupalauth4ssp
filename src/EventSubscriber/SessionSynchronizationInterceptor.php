@@ -157,6 +157,10 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
         $sloUrl = UrlHelpers::generateSloUrl($request->getHost(), $request->getUri());
         $event->setResponse(new RedirectResponse($sloUrl));
       }
+      else {
+        // Invoke hook_user_login.
+        $this->moduleHandler->invokeAll('user_login', [$user]);
+      }
     }
   }
 
