@@ -162,6 +162,16 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
         $this->moduleHandler->invokeAll('user_login', [$user]);
       }
     }
+    else {
+      // Log user out if logged in as non-local user.
+      if (!$this->account->isAnonymous()) {
+        // Check user validity -- if invalid (i.e., non-SSO user), don't log
+        // user out; otherwise, do.
+        if ($this->accountValidator->isAccountValid($this->account)) {
+          user_logout();
+        }
+      }
+    }
   }
 
   /**
