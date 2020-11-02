@@ -18,12 +18,11 @@ use Symfony\Component\HttpKernel\KernelEvents;
 /**
  * Ensures single-logout is initiated (if applicable) for non-SSO logout routes.
  *
- * Normally, logging out through the default route ('user.logout') will destory
- * the simpleSAMLphp session, but not log out all the service providers. Hence,
- * we subscribe to the RESPONSE event in order to ensure "single logout" (a
- * feature of simpleSAMLphp enabling automatic log out of all service providers)
- * is initiated, using a redirect, after the normal logout procedure has been
- * completed, if there is an IdP session (after first destroying this session).
+ * Normally, logging out through the default route ('user.logout') will not
+ * destroy the simpleSAMLphp session, nor initiate single logout, nor destroy
+ * the drupalauth4ssp cookie. Hence, we subscribe to the RESPONSE event in order
+ * to ensure all of this done when the user navigates to user.logout, provided
+ * there is an SSP session.
  */
 class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
 
@@ -113,6 +112,8 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
           $session->setAuthorityExpire($authority, 1);
         }
       }
+      // Destroy the drupalauth4ssp user ID cookie.
+      drupalauth4ssp_unset_user_cookie();
 
       // Now go ahead and initiate single logout.
       // Build the single logout URL.
