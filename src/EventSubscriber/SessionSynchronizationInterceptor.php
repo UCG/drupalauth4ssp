@@ -24,7 +24,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * might, for instance, have a simpleSAMLphp session but no associated Drupal
  * session. In this case, something like passive login requests (from a SP)
  * would succeed, even though there is no local session at the IdP. Such
- * inconsistent representation of state is to be avoided.
+ * inconsistent representation of state is confusing to the user, and should be
+ * avoided.
  */
 class SessionSynchronizationInterceptor implements EventSubscriberInterface {
 
@@ -143,17 +144,24 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
         user_logout();
       }
       // Log in new user.
-      // Taken from src/  UserSwitch.php from "Switch User" Drupal contrib module.
+      // Taken from src/UserSwitch.php from "Switch User" Drupal contrib module.
       $this->sessionManager->regenerate();
       $this->account->setAccount($user);
       $this->session->set('uid', $user->id());
+      
       // Now, reload the user to ensure it exists, and check its validity. We do
       // this after we have already logged in the user to avoid race conditions.
       $user = $entityTypeManager->getStorage('user')->load($uid);
       if (!isset($user) || !$this->accountValidator->isAccountValid($this->account)) {
         // Then we are in trouble. We should immediately log out.
-        user_logout();
-        // And perform single logout.
+        // Taken from user_logout() in core/modules/user/user.module. We don't
+        // call user_logout() to avoid invoking hook_user_logout when the login
+        // process hasn't even finished yet (hook_user_login has not yet been
+        // invoked).
+        $this->sessionManager->destroy();
+        $user->setAccount(new AnonymousUserSession());
+        // And perform single logout, as the current SSP user isn't exist or
+        // isn't valid (and thus shouldn't be logged in).
         $sloUrl = UrlHelpers::generateSloUrl($request->getHost(), $request->getUri());
         $event->setResponse(new RedirectResponse($sloUrl));
       }
