@@ -69,20 +69,21 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
     $nonceSessionVariableName = 'ssoLoginNonce:' . $nonce;
   } while (isset($_SESSION[$nonceSessionVariableName]));
   // Store nonce and nonce expiry time in session -- expire after five minutes.
-  $_SESSION[$nonceSessionVariableName] = time() + 300;
+  $nonceExpiry = time() + 300;
+  $_SESSION[$nonceSessionVariableName] = $nonceExpiry;
 
   // Store the authenticated user's uid in the cookie (create a validation hash
-  // to ensure nobody tampers with the uid), along with the nonce.
+  // to ensure nobody tampers with the uid), along with the nonce generated
+  // above, and expire the cookie at the expiry time calculated above.
   // @todo Set via request
   $hash = Crypt::hmacBase64($account->id(), $ssp_config['secretsalt'] . \Drupal::service('private_key')->get());
-  setcookie($ssp_config['cookie_name'], $hash . ':' . $account->id() . $nonce, 0, $ssp_config['baseurlpath']);
+  setcookie($ssp_config['cookie_name'], $hash . ':' . $account->id() . ':' . $nonce, $nonceExpiry, $ssp_config['baseurlpath']);
 }
 
 /**
- * Implements hook_user_logout().
+ * Unsets the special drupalauth4ssp user cookie.
  */
-function drupalauth4ssp_user_logout($account) {
-  /** @var \Drupal\Core\Session\AccountProxy $account */
+function drupalauth4ssp_unset_user_cookie() {
   // Get the configuration information from SimpleSAMLphp.
   $ssp_config = _drupalauth4ssp_get_simplesamlphp_config();
 
@@ -95,8 +96,7 @@ function drupalauth4ssp_user_logout($account) {
   }
 
   // Delete the cookie.
-  $hash = Crypt::hmacBase64($account->id(), $ssp_config['secretsalt'] . \Drupal::service('private_key')->get());
-  setcookie($ssp_config['cookie_name'], $hash . ':' . $account->id(), time() - 3600, $ssp_config['baseurlpath']);
+  setcookie($ssp_config['cookie_name'], '', time() - 3600, $ssp_config['baseurlpath']);
 }
 
 /**
