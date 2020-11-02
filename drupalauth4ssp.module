@@ -64,7 +64,7 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
   assert(session_id());
   // Keep trying until we get a nonce that isn't already used by this session.
   do {
-    // Nonce = base-64 encoded version of 32 cyprographically random bytes.
+    // Nonce = base-64 encoded version of 32 cryptographically random bytes.
     $nonce = base64_encode(random_bytes(32));
     $nonceSessionVariableName = 'ssoLoginNonce:' . $nonce;
   } while (isset($_SESSION[$nonceSessionVariableName]));
