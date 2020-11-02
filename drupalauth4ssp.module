@@ -52,11 +52,30 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
     return;
   }
 
+  // We are going to generate a nonce which we will add to the cookie set below.
+  // We will also store this nonce in the session, along with an expiry time for
+  // this nonce. This is to prevent "replay attacks," where a user might re-use
+  // the cookie created below to log in multiple times. With what we are doing
+  // here, such attacks become very unlikely -- the nonce (with very high
+  // probability) cannot be re-used, so the attacker would have to guess the
+  // value of the nonce generated below to conduct a replay attack. This would
+  // be very improbable, so replay attacks are effectively mitigated.
+  // A session should always be running right now.
+  assert(session_id());
+  // Keep trying until we get a nonce that isn't already used by this session.
+  do {
+    // Nonce = base-64 encoded version of 32 cyprographically random bytes.
+    $nonce = base64_encode(random_bytes(32));
+    $nonceSessionVariableName = 'ssoLoginNonce:' . $nonce;
+  } while (isset($_SESSION[$nonceSessionVariableName]));
+  // Store nonce and nonce expiry time in session -- expire after five minutes.
+  $_SESSION[$nonceSessionVariableName] = time() + 300;
+
   // Store the authenticated user's uid in the cookie (create a validation hash
-  // to ensure nobody tampers with the uid).
+  // to ensure nobody tampers with the uid), along with the nonce.
   // @todo Set via request
   $hash = Crypt::hmacBase64($account->id(), $ssp_config['secretsalt'] . \Drupal::service('private_key')->get());
-  setcookie($ssp_config['cookie_name'], $hash . ':' . $account->id(), 0, $ssp_config['baseurlpath']);
+  setcookie($ssp_config['cookie_name'], $hash . ':' . $account->id() . $nonce, 0, $ssp_config['baseurlpath']);
 }
 
 /**
