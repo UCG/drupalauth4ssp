@@ -17,8 +17,6 @@ use Drupal\user\Entity\User;
 
 /**
  * Implements hook_user_login().
- *
- * Sets a special cookie for drupalauth SimpleSAMLphp module.
  */
 function drupalauth4ssp_user_login($account) {
   // Only set cookie if we are performing an SP-initiated SSO login.
@@ -27,6 +25,33 @@ function drupalauth4ssp_user_login($account) {
     if (\Drupal::service('drupalauth4ssp.account_validator')->isAccountValid($account)) {
       drupalauth4ssp_set_user_cookie($account);
     }
+  }
+  else if (_drupalauth4ssp_is_current_route_normal_login_route()) {
+    // If we just logged in via the normal user.login route, we will go ahead
+    // and signal that we should initiate simpleSAMLphp authentication. We don't
+    // perform that authentication here, because we don't want to redirect until
+    // all implementations of hook_user_login are called.
+
+    // Grab a reference to the static "should initiate SSP login" variable.
+    $shouldInitiateLogin = &drupal_static('drupalauth4ssp_var_shouldInitiateSspLogin');
+    $shouldInitiateLogin = TRUE;
+  }
+}
+
+/**
+ * Implements hook_user_logout.
+ *
+ */
+function drupalauth4ssp_user_logout($account) {
+  if (_drupalauth4ssp_is_current_route_normal_logout_route()) {
+    // If we just logged out via the normal user.logout route, we will go ahead
+    // and signal that we should destroy the simpleSAMLphp session, etc., and
+    // initiate single logout. We don't perform that here, because we want to
+    // ensure all implementations of hook_user_logout are called first.
+
+    // Grab a reference to the static "should initiate SSP logout" variable.
+    $shouldInitiateLogout = &drupal_static('drupalauth4ssp_var_shouldInitiateSspLogout');
+    $shouldInitiateLogout = TRUE;
   }
 }
 
@@ -155,10 +180,37 @@ function drupalauth4ssp_user_login_submit($form, \Drupal\Core\Form\FormStateInte
 }
 
 /**
+ * Gets the current route name, if possible.
+ *
+ * @return string|NULL Current route name, or 'NULL' if no route found.
+ */
+function _drupalauth4ssp_get_current_route() : ?string {
+  return \Drupal::routeMatch()->getRouteName();
+}
+
+/**
+ * Checks to see if the current route is the standard login route (user.login).
+ *
+ * @return bool 'TRUE' if standard login route, else 'FALSE'.
+ */
+function _drupalauth4ssp_is_current_route_normal_login_route() : bool {
+  return _drupalauth4ssp_get_current_route() === 'user.login';
+}
+
+/**
+ * Checks to see if current route is the standard logout route (user.logout).
+ *
+ * @return bool 'TRUE' if standard logout route, else 'FALSE'.
+ */
+function _drupalauth4ssp_is_current_route_normal_logout_route() : bool {
+  return _drupalauth4ssp_get_current_route() === 'user.logout';
+}
+
+/**
  * Checks to see if the current route is the SP-initiated SSO login route.
  *
- * @return bool 'TRUE' if SP-initiated SSO route, else 'FALSE'
+ * @return bool 'TRUE' if SP-initiated SSO route, else 'FALSE'.
  */
-function _drupalauth4ssp_is_current_route_sso_login_route() {
-  return \Drupal::routeMatch()->getRouteName() == 'drupalauth4ssp.ssoLogin';
+function _drupalauth4ssp_is_current_route_sso_login_route() : bool {
+  return _drupalauth4ssp_get_current_route() === 'drupalauth4ssp.ssoLogin';
 }

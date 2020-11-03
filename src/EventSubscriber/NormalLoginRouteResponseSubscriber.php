@@ -49,6 +49,13 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
   protected $configuration;
 
   /**
+   * URL helper service.
+   *
+   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
+   */
+  protected $urlHelper;
+
+  /**
    * Creates a normal login route response subscriber instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
@@ -57,11 +64,14 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    *   Account validator.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
    *   Configuration factory.
+   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService
+   *   URL helper service.
    */
-  public function __construct(AccountInterface $account, AccountValidatorInterface $accountValidator, ConfigFactoryInterface $configurationFactory) {
+  public function __construct(AccountInterface $account, AccountValidatorInterface $accountValidator, ConfigFactoryInterface $configurationFactory, $urlHelper) {
     $this->account = $account;
     $this->accountValidator = $accountValidator;
     $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
+    $this->urlHelper = $urlHelper;
   }
 
   /**
@@ -86,33 +96,46 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
     if ($request->attributes->get('_route') != 'user.login') {
       return;
     }
-    // Ignore anonymous users - we don't want to do anything until we have
-    // actually logged in.
+    // If this response was generated because of an exception, we don't want to
+    // mess with things; get out.
+    if ($request->attributes->get('exception')) {
+      return;
+    }
+    // If we're not actually logged in, get out.
     if ($this->account->isAnonymous()) {
       return;
     }
-
-    // See if user is SSO-enabled.
-    if ($this->accountValidator->isAccountValid($this->account)) {
-      // If this is a 302 or 303 redirect response, grab the redirect URL.
-      $response = $event->getResponse();
-      if ($response instanceof RedirectResponse) {
-        $statusCode = $response->getStatusCode();
-        if ($statusCode == Response::HTTP_FOUND || $statusCode == Response::HTTP_SEE_OTHER) {
-          $redirectUrl = $response->getTargetUrl();
-        }
-      }
-      // If we have a non-empty redirect URL, we'll try to use that for the
-      // 'ReturnTo' URL. Otherwise, we'll use the home page.
-      if (empty($redirectUrl)) {
-        $redirectUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
-      }
-
-      // Try to create the simpleSAMLphp instance.
-      $simpleSaml = new Simple($this->configuration->get('authsource'));
-      // Initiate authentication.
-      $simpleSaml->requireAuth(['ReturnTo' => $redirectUrl, 'KeepPost' => 'FALSE']);
+    // See if our handler of hook_user_logout set a flag indicating we should
+    // proceed.
+    $shouldInitiateLogout = &drupal_static('drupalauth4ssp_var_shouldInitiateSspLogout');
+    if (!isset($shouldInitiateLogout) || !$shouldInitiateLogout) {
+      return;
     }
+    // If user isn't SSO-enabled, get out.
+    if (!$this->accountValidator->isAccountValid($this->account)) {
+      return;
+    }
+
+    // Proceed. If we can, we'll redirect to the referrer. This overrides the
+    // default user.logout behavior.
+    $referrer = $request->server->get('HTTP_REFERER');
+    // Check that the referrer is valid and points to a local URL.
+    if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
+      $returnUrl = $referrer;
+    }
+    else {
+      // Otherwise, just go to the front page.
+      $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
+    }
+
+    // Try to create the simpleSAMLphp instance.
+    $simpleSaml = new Simple($this->configuration->get('authsource'));
+    // Initiate authentication. Just return and continue if already logged in.
+    $simpleSaml->requireAuth(['ReturnTo' => $returnUrl, 'KeepPost' => 'FALSE']);
+    // For consistency, initiate redirect to $returnUrl even if we were already
+    // authenticated.
+    $event->setResponse(new RedirectResponse($returnUrl));
+    $event->stopPropagation();
   }
 
   /**

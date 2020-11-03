@@ -41,16 +41,26 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
   protected $account;
 
   /**
+   * URL helper service.
+   *
+   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
+   */
+  protected $urlHelper;
+
+  /**
    * Creates a normal logout route response subscriber instance.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
    *   Configuration factory.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
+   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService
+   *   URL helper service.
    */
-  public function __construct(AccountInterface $account, ConfigFactoryInterface $configurationFactory) {
+  public function __construct(AccountInterface $account, ConfigFactoryInterface $configurationFactory, $urlHelper) {
     $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
     $this->account = $account;
+    $this->urlHelper = $urlHelper;
   }
 
   /**
@@ -73,55 +83,65 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
     if ($request->attributes->get('_route') != 'user.logout') {
       return;
     }
-    // If we haven't actually logged out, get out
+    // If this response was generated because of an exception, we don't want to
+    // mess with things; get out.
+    if ($request->attributes->get('exception')) {
+      return;
+    }
+    // If we haven't actually logged out, get out.
     if (!$this->account->isAnonymous()) {
+      return;
+    }
+    // See if our handler of hook_user_logout set a flag indicating we should
+    // proceed.
+    $shouldInitiateLogout = &drupal_static('drupalauth4ssp_var_shouldInitiateSspLogout');
+    if (!isset($shouldInitiateLogout) || !$shouldInitiateLogout) {
       return;
     }
 
     // Try to create the simpleSAMLphp instance.
     $simpleSaml = new Simple($this->configuration->get('authsource'));
     // Proceed only if authenticated.
-    if ($simpleSaml->isAuthenticated()) {
-      // If this is a 302 or 303 redirect response, grab the redirect URL and use
-      // it as a return URL.
-      $response = $event->getResponse();
-      if ($response instanceof RedirectResponse) {
-        $statusCode = $response->getStatusCode();
-        if ($statusCode == Response::HTTP_FOUND || $statusCode == Response::HTTP_SEE_OTHER) {
-          $returnUrl = $response->getTargetUrl();
-        }
-      }
-      // If we have a non-empty return URL, we'll try to use that for the
-      // 'ReturnTo' URL. Otherwise, we'll use the home page.
-      if (empty($returnUrl)) {
-        $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
-      }
-
-      // Destroy session and initiate single logout.
-      // Taken from drupalauth4ssp.module in the non-forked version.
-      // Invalidate SimpleSAML session by expiring it.
-      $session = Session::getSessionFromRequest();
-      // Backward compatibility with SimpleSAMP older than 1.14.
-      // SimpleSAML_Session::getAuthority() has been removed in 1.14.
-      // @see https://simplesamlphp.org/docs/development/simplesamlphp-upgrade-notes-1.14
-      if (method_exists($session, 'getAuthority')) {
-        $session->setAuthorityExpire($session->getAuthority(), 1);
-      }
-      else {
-        foreach ($session->getAuthorities() as $authority) {
-          $session->setAuthorityExpire($authority, 1);
-        }
-      }
-      // Destroy the drupalauth4ssp user ID cookie.
-      drupalauth4ssp_unset_user_cookie();
-
-      // Now go ahead and initiate single logout.
-      // Build the single logout URL.
-      $singleLogoutUrl = UrlHelpers::generateSloUrl($request->getHost(), $returnUrl);
-      // Redirect to the single logout URL
-      $event->setResponse(new RedirectResponse($singleLogoutUrl));
-      $event->stopPropagation();
+    if (!$simpleSaml->isAuthenticated()) {
+      return;
     }
+
+    // Proceed. If we can, we'll redirect to the referrer. This overrides the
+    // default user.logout behavior.
+    $referrer = $request->server->get('HTTP_REFERER');
+    // Check that the referrer is valid and points to a local URL.
+    if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
+      $returnUrl = $referrer;
+    }
+    else {
+      // Otherwise, just go to the front page.
+      $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
+    }
+
+    // Destroy session and initiate single logout.
+    // Taken from drupalauth4ssp.module in the non-forked version.
+    // Invalidate SimpleSAML session by expiring it.
+    $session = Session::getSessionFromRequest();
+    // Backward compatibility with SimpleSAMP older than 1.14.
+    // SimpleSAML_Session::getAuthority() has been removed in 1.14.
+    // @see https://simplesamlphp.org/docs/development/simplesamlphp-upgrade-notes-1.14
+    if (method_exists($session, 'getAuthority')) {
+      $session->setAuthorityExpire($session->getAuthority(), 1);
+    }
+    else {
+      foreach ($session->getAuthorities() as $authority) {
+        $session->setAuthorityExpire($authority, 1);
+      }
+    }
+    // Destroy the drupalauth4ssp user ID cookie.
+    drupalauth4ssp_unset_user_cookie();
+
+    // Now go ahead and initiate single logout.
+    // Build the single logout URL.
+    $singleLogoutUrl = UrlHelpers::generateSloUrl($request->getHost(), $returnUrl);
+    // Redirect to the single logout URL
+    $event->setResponse(new RedirectResponse($singleLogoutUrl));
+    $event->stopPropagation();
   }
 
   /**
