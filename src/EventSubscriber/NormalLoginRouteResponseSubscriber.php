@@ -8,6 +8,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\drupalauth4ssp\AccountValidatorInterface;
+use Drupal\drupalauth4ssp\SimpleSamlPhpLink;
 use SimpleSAML\Auth\Simple;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -56,6 +57,13 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
   protected $urlHelper;
 
   /**
+   * Service to interact with simpleSAMLphp.
+   *
+   * @var \Drupal\drupalauth4ssp\SimpleSamlPhpLink
+   */
+  protected $sspLink;
+
+  /**
    * Creates a normal login route response subscriber instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
@@ -64,14 +72,17 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    *   Account validator.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
    *   Configuration factory.
-   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService
+   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   URL helper service.
+   * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink
+   *   Service to interact with simpleSAMLphp.
    */
-  public function __construct(AccountInterface $account, AccountValidatorInterface $accountValidator, ConfigFactoryInterface $configurationFactory, $urlHelper) {
+  public function __construct(AccountInterface $account, AccountValidatorInterface $accountValidator, ConfigFactoryInterface $configurationFactory, $urlHelper, $sspLink) {
     $this->account = $account;
     $this->accountValidator = $accountValidator;
     $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
     $this->urlHelper = $urlHelper;
+    $this->sspLink = $sspLink;
   }
 
   /**
@@ -128,10 +139,8 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
       $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
     }
 
-    // Try to create the simpleSAMLphp instance.
-    $simpleSaml = new Simple($this->configuration->get('authsource'));
-    // Initiate authentication. Just return and continue if already logged in.
-    $simpleSaml->requireAuth(['ReturnTo' => $returnUrl, 'KeepPost' => 'FALSE']);
+    // Initiate authentication. Returns and continue if already logged in.
+    $sspLink->initiateAuthenticationIfNecessary(['ReturnTo' => $returnUrl, 'KeepPost' => 'FALSE']);
     // For consistency, initiate redirect to $returnUrl even if we were already
     // authenticated.
     $event->setResponse(new RedirectResponse($returnUrl));

@@ -8,6 +8,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\drupalauth4ssp\Helper\UrlHelpers;
+use Drupal\drupalauth4ssp\SimpleSamlPhpLink;
 use SimpleSAML\Auth\Simple;
 use SimpleSAML\Session;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -19,9 +20,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * Ensures single-logout is initiated (if applicable) for non-SSO logout routes.
  *
  * Normally, logging out through the default route ('user.logout') will not
- * destroy the simpleSAMLphp session, nor initiate single logout, nor destroy
- * the drupalauth4ssp cookie. Hence, we subscribe to the RESPONSE event in order
- * to ensure all of this done when the user navigates to user.logout, provided
+ * initiate single logout. Hence, we subscribe to the RESPONSE event in order to
+ * ensure all of this done when the user navigates to user.logout, provided
  * there is an SSP session.
  */
 class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
@@ -48,19 +48,29 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
   protected $urlHelper;
 
   /**
+   * Service to interact with simpleSAMLphp.
+   *
+   * @var \Drupal\drupalauth4ssp\SimpleSamlPhpLink
+   */
+  protected $sspLink;
+
+  /**
    * Creates a normal logout route response subscriber instance.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
    *   Configuration factory.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
-   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService
+   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   URL helper service.
+   * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
+   *   Service to interact with simpleSAMLphp.
    */
-  public function __construct(AccountInterface $account, ConfigFactoryInterface $configurationFactory, $urlHelper) {
+  public function __construct(AccountInterface $account, ConfigFactoryInterface $configurationFactory, $urlHelper, $sspLink) {
     $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
     $this->account = $account;
     $this->urlHelper = $urlHelper;
+    $this->sspLink = $sspLink;
   }
 
   /**
@@ -99,10 +109,8 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // Try to create the simpleSAMLphp instance.
-    $simpleSaml = new Simple($this->configuration->get('authsource'));
     // Proceed only if authenticated.
-    if (!$simpleSaml->isAuthenticated()) {
+    if (!$this->sspLink->isAuthenticated()) {
       return;
     }
 
@@ -117,24 +125,6 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
       // Otherwise, just go to the front page.
       $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
     }
-
-    // Destroy session and initiate single logout.
-    // Taken from drupalauth4ssp.module in the non-forked version.
-    // Invalidate SimpleSAML session by expiring it.
-    $session = Session::getSessionFromRequest();
-    // Backward compatibility with SimpleSAMP older than 1.14.
-    // SimpleSAML_Session::getAuthority() has been removed in 1.14.
-    // @see https://simplesamlphp.org/docs/development/simplesamlphp-upgrade-notes-1.14
-    if (method_exists($session, 'getAuthority')) {
-      $session->setAuthorityExpire($session->getAuthority(), 1);
-    }
-    else {
-      foreach ($session->getAuthorities() as $authority) {
-        $session->setAuthorityExpire($authority, 1);
-      }
-    }
-    // Destroy the drupalauth4ssp user ID cookie.
-    drupalauth4ssp_unset_user_cookie();
 
     // Now go ahead and initiate single logout.
     // Build the single logout URL.
