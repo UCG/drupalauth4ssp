@@ -8,7 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
-use Drupal\drupalauth4ssp\Helper\ReturnToUrlManager;
+use Drupal\drupalauth4ssp\Helper\UrlHelperService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -34,9 +34,9 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
   /**
    * Helper service to obtain and determine if 'ReturnTo' URL can be used.
    *
-   * @var \Drupal\drupalauth4ssp\Helper\ReturnToUrlManager;
+   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService;
    */
-  protected $returnToUrlManager;
+  protected $urlHelper;
 
   /**
    * Creates this controller object.
@@ -45,13 +45,13 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    *   Account.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   Request stack.
-   * @param \Drupal\drupalauth4ssp\Helper\ReturnToUrlManager $returnToUrlManager
+   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   Helper service to obtain and determine if 'ReturnTo' URL can be used.
    */
-  public function __construct(AccountInterface $account, $requestStack, $returnToUrlManager) {
+  public function __construct(AccountInterface $account, $requestStack, $urlHelper) {
     $this->account = $account;
     $this->requestStack = $requestStack;
-    $this->returnToUrlManager = $returnToUrlManager;
+    $this->urlHelper = $urlHelper;
   }
   /**
    * Contains controller logic.
@@ -71,8 +71,8 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
     // Attempt to redirect, if possible (if the return URL parameter isn't
     // empty and is allowed) to the return URL query string parameter.
     // Otherwise, redirect to the home page.
-    if ($this->returnToUrlManager->isReturnUrlValid()) {
-      return new RedirectResponse($this->returnToUrlManager->getReturnUrl());
+    if ($this->urlHelper->isReturnToUrlValid()) {
+      return new RedirectResponse($this->urlHelper->getReturnToUrl());
     }
     else {
       return new RedirectResponse(Url::fromRoute('<front>')->setAbsolute()->toString());
@@ -83,7 +83,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    return new static($container->get('current_user'), $container->get('request_stack'), $container->get('drupalauth4ssp.return_url_manager'));
+    return new static($container->get('current_user'), $container->get('request_stack'), $container->get('drupalauth4ssp.url_helper'));
   }
 
 }

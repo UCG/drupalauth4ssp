@@ -173,9 +173,9 @@ function drupalauth4ssp_form_user_login_form_alter(&$form, \Drupal\Core\Form\For
  */
 function drupalauth4ssp_user_login_submit($form, \Drupal\Core\Form\FormStateInterface $form_state) {
   // If the ReturnTo URL is okay, send the user to the URL.
-  $returnToUrlManager = \Drupal::service('drupalauth4ssp.return_url_manager');
-  if ($returnToUrlManager->isReturnUrlValid()) {
-    $form_state->setRedirectUrl(Url::fromUri($returnToUrlManager->getReturnUrl()));
+  $urlHelper = \Drupal::service('drupalauth4ssp.url_helper');
+  if ($urlHelper->isReturnToUrlValid()) {
+    $form_state->setRedirectUrl(Url::fromUri($urlHelper->getReturnToUrl()));
   }
 }
 

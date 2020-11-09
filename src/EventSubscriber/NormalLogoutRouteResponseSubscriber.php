@@ -4,34 +4,23 @@ declare(strict_types = 1);
 
 namespace Drupal\drupalauth4ssp\EventSubscriber;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\drupalauth4ssp\Helper\UrlHelpers;
 use Drupal\drupalauth4ssp\SimpleSamlPhpLink;
-use SimpleSAML\Auth\Simple;
-use SimpleSAML\Session;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Ensures single-logout is initiated (if applicable) for non-SSO logout routes.
  *
  * Normally, logging out through the default route ('user.logout') will not
- * initiate single logout. Hence, we subscribe to the RESPONSE event in order to
- * ensure all of this done when the user navigates to user.logout, provided
- * there is an SSP session.
+ * initiate single logout. Hence, we subscribe to the kernel.response event in
+ * order to ensure all of this done when the user navigates to user.logout,
+ * provided there is an SSP session.
  */
 class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
-
-  /**
-   * DrupalAuth for SimpleSamlPHP configuration.
-   *
-   * @var \Drupal\Core\Config\ImmutableConfig
-   */
-  protected $configuration;
 
     /**
    * Account.
@@ -57,8 +46,6 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
   /**
    * Creates a normal logout route response subscriber instance.
    *
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
-   *   Configuration factory.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
    * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
@@ -66,8 +53,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
    *   Service to interact with simpleSAMLphp.
    */
-  public function __construct(AccountInterface $account, ConfigFactoryInterface $configurationFactory, $urlHelper, $sspLink) {
-    $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
+  public function __construct(AccountInterface $account, $urlHelper, $sspLink) {
     $this->account = $account;
     $this->urlHelper = $urlHelper;
     $this->sspLink = $sspLink;
@@ -80,8 +66,9 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
    *   Response event.
    * @return void
-   * @throws \SimpleSAML\Error\CriticalConfigurationError
-   *   Thrown if something was wrong with the simpleSAMLphp configuration.
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function handleNormalLogoutResponse($event) : void {
     if (!$event->isMasterRequest()) {
@@ -108,13 +95,12 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
     if (!isset($shouldInitiateLogout) || !$shouldInitiateLogout) {
       return;
     }
-
     // Proceed only if authenticated.
     if (!$this->sspLink->isAuthenticated()) {
       return;
     }
 
-    // Proceed. If we can, we'll redirect to the referrer. This overrides the
+    // If we can, we'll redirect to the referrer. This overrides the
     // default user.logout behavior.
     $referrer = $request->server->get('HTTP_REFERER');
     // Check that the referrer is valid and points to a local URL.

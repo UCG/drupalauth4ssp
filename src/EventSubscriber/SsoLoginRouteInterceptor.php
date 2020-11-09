@@ -4,8 +4,9 @@ declare(strict_types = 1);
 
 namespace Drupal\drupalauth4ssp\EventSubscriber;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\drupalauth4ssp\AccountValidatorInterface;
+use Drupal\drupalauth4ssp\UserValidatorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -33,33 +34,43 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
   protected $account;
 
   /**
-   * Validator used to ensure account is SSO-enabled.
+   * Entity type manager.
    *
-   * @var \Drupal\drupalauth4ssp\AccountValidatorInterface
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
-  protected $accountValidator;
+  protected $entityTypeManager;
 
   /**
    * Helper service to obtain and determine if 'ReturnTo' URL can be used.
    *
-   * @var \Drupal\drupalauth4ssp\Helper\ReturnToUrlManager;
+   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService;
    */
-  protected $returnToUrlManager;
+  protected $urlHelper;
+
+  /**
+   * Validator used to ensure user is SSO-enabled.
+   *
+   * @var \Drupal\drupalauth4ssp\UserValidatorInterface
+   */
+  protected $userValidator;
 
   /**
    * Creates a login route interceptor instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
-   * @param \Drupal\drupalauth4ssp\AccountValidatorInterface $accountValidator
-   *   Account validator.
-   * @param \Drupal\drupalauth4ssp\Helper\ReturnToUrlManager $returnToUrlManager
+   * @param \Drupal\drupalauth4ssp\UserValidatorInterface $userValidator
+   *   User validator.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   Entity type manager.
+   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   Helper service to obtain and determine if 'ReturnTo' URL can be used.
    */
-  public function __construct(AccountInterface $account, AccountValidatorInterface $accountValidator, $returnToUrlManager) {
+  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $urlHelper) {
     $this->account = $account;
-    $this->accountValidator = $accountValidator;
-    $this->returnToUrlManager = $returnToUrlManager;
+    $this->userValidator = $userValidator;
+    $this->urlHelper = $urlHelper;
+    $this->entityTypeManager = $entityTypeManager;
   }
 
   /**
@@ -85,12 +96,12 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
       return;
     }
     // Otherwise, check to see if we are allowed to perform SSO login.
-    if ($this->accountValidator->isAccountValid($this->account)) {
+    if ($this->userValidator->isAccountValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
       // We have an SSO-enabled user! We will have to try to pass on his ID.
       drupalauth4ssp_set_user_cookie($this->account);
       // Now, redirect the user to the 'ReturnTo' URL if possible.
-      if ($this->returnToUrlManager->isReturnUrlValid()) {
-        $event->setResponse(new RedirectResponse($this->returnToUrlManager->getReturnUrl()));
+      if ($this->urlHelper->isReturnToUrlValid()) {
+        $event->setResponse(new RedirectResponse($this->returnToUrlManager->getReturnToUrl()));
       }
       else {
         // Return 403.

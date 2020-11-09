@@ -4,15 +4,13 @@ declare(strict_types = 1);
 
 namespace Drupal\drupalauth4ssp\EventSubscriber;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
-use Drupal\drupalauth4ssp\AccountValidatorInterface;
 use Drupal\drupalauth4ssp\SimpleSamlPhpLink;
-use SimpleSAML\Auth\Simple;
+use Drupal\drupalauth4ssp\UserValidatorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
@@ -21,10 +19,11 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * Normally, logging in through the default route ('user.login') will not create
  * a simpleSAMLphp session. Since we would like there to be a simpleSAMLphp
  * session whenever the user logs in to an SSO-enabled account, this subscriber
- * intercepts these login requests just before the response is sent. It then
- * determines where the user is being redirected, and performs simpleSAMLphp
- * authentication with the 'ReturnURL' parameter set to the redirect URL (or to
- * the home page if no such URL exists).
+ * intercepts these login requests just before the response is sent. If
+ * necessary, this subscriber performs simpleSAMLphp authentication with the
+ * 'ReturnTo' parameter set to appropriately (to the referrer if possible).
+ * If no SSP authentication is necessary, the subscriber simply redirects to an
+ * appropriate destination.
  */
 class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
 
@@ -36,18 +35,18 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
   protected $account;
 
   /**
-   * Validator used to ensure account is SSO-enabled.
+   * Entity type manager.
    *
-   * @var \Drupal\drupalauth4ssp\AccountValidatorInterface
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
-  protected $accountValidator;
+  protected $entityTypeManager;
 
-  /**
-   * DrupalAuth for SimpleSamlPHP configuration.
+    /**
+   * Service to interact with simpleSAMLphp.
    *
-   * @var \Drupal\Core\Config\ImmutableConfig
+   * @var \Drupal\drupalauth4ssp\SimpleSamlPhpLink
    */
-  protected $configuration;
+  protected $sspLink;
 
   /**
    * URL helper service.
@@ -57,32 +56,32 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
   protected $urlHelper;
 
   /**
-   * Service to interact with simpleSAMLphp.
+   * Validator used to ensure user is SSO-enabled.
    *
-   * @var \Drupal\drupalauth4ssp\SimpleSamlPhpLink
+   * @var \Drupal\drupalauth4ssp\UserValidatorInterface
    */
-  protected $sspLink;
+  protected $userValidator;
 
   /**
    * Creates a normal login route response subscriber instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
-   * @param \Drupal\drupalauth4ssp\AccountValidatorInterface $accountValidator
-   *   Account validator.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
-   *   Configuration factory.
+   * @param \Drupal\drupalauth4ssp\UserValidatorInterface $userValidator
+   *   User validator.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   Entity type manager.
    * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   URL helper service.
-   * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink
+   * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
    *   Service to interact with simpleSAMLphp.
    */
-  public function __construct(AccountInterface $account, AccountValidatorInterface $accountValidator, ConfigFactoryInterface $configurationFactory, $urlHelper, $sspLink) {
+  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $urlHelper, $sspLink) {
     $this->account = $account;
-    $this->accountValidator = $accountValidator;
-    $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
+    $this->userValidator = $userValidator;
     $this->urlHelper = $urlHelper;
     $this->sspLink = $sspLink;
+    $this->entityTypeManager = $entityTypeManager;
   }
 
   /**
@@ -94,8 +93,9 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
    *   Response event.
    * @return void
-   * @throws \SimpleSAML\Error\CriticalConfigurationError
-   *   Thrown if something was wrong with the simpleSAMLphp configuration.
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function handleNormalLoginResponse($event) : void {
     $request = $event->getRequest();
@@ -116,14 +116,14 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
     if ($this->account->isAnonymous()) {
       return;
     }
-    // See if our handler of hook_user_logout set a flag indicating we should
+    // See if our handler of hook_user_login set a flag indicating we should
     // proceed.
-    $shouldInitiateLogout = &drupal_static('drupalauth4ssp_var_shouldInitiateSspLogout');
-    if (!isset($shouldInitiateLogout) || !$shouldInitiateLogout) {
+    $shouldInitiateLogin = &drupal_static('drupalauth4ssp_var_shouldInitiateSspLogin');
+    if (!isset($shouldInitiateLogin) || !$shouldInitiateLogin) {
       return;
     }
     // If user isn't SSO-enabled, get out.
-    if (!$this->accountValidator->isAccountValid($this->account)) {
+    if (!$this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
       return;
     }
 
@@ -139,8 +139,8 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
       $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
     }
 
-    // Initiate authentication. Returns and continue if already logged in.
-    $sspLink->initiateAuthenticationIfNecessary(['ReturnTo' => $returnUrl, 'KeepPost' => 'FALSE']);
+    // Initiate SSP authentication. Returns and continues if already logged in.
+    $this->sspLink->initiateAuthenticationIfNecessary($returnUrl);
     // For consistency, initiate redirect to $returnUrl even if we were already
     // authenticated.
     $event->setResponse(new RedirectResponse($returnUrl));

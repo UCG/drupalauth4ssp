@@ -4,13 +4,12 @@ declare(strict_types = 1);
 
 namespace Drupal\drupalauth4ssp\EventSubscriber;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionManagerInterface;
-use Drupal\drupalauth4ssp\AccountValidatorInterface;
 use Drupal\drupalauth4ssp\Helper\UrlHelpers;
+use Drupal\drupalauth4ssp\UserValidatorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -22,7 +21,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * session without a simpleSAMLphp session, and visa versa. This ensures we
  * have a unified representation of session state on this IdP. Otherwise, we
  * might, for instance, have a simpleSAMLphp session but no associated Drupal
- * session. In this case, something like passive login requests (from a SP)
+ * session. In this case, something like a passive login request (from an SP)
  * would succeed, even though there is no local session at the IdP. Such
  * inconsistent representation of state is confusing to the user, and should be
  * avoided.
@@ -37,18 +36,11 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
   protected $account;
 
   /**
-   * Validator used to ensure account is SSO-enabled.
+   * Validator used to ensure user is SSO-enabled.
    *
-   * @var \Drupal\drupalauth4ssp\AccountValidatorInterface
+   * @var \Drupal\drupalauth4ssp\UserValidatorInterface
    */
-  protected $accountValidator;
-
-  /**
-   * DrupalAuth for SimpleSamlPHP configuration.
-   *
-   * @var \Drupal\Core\Config\ImmutableConfig
-   */
-  protected $configuration;
+  protected $userValidator;
 
   /**
    * Entity type manager.
@@ -78,15 +70,20 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    */
   protected $session;
 
+  /**
+   * Service to interact with simpleSAMLphp.
+   *
+   * @var \Drupal\drupalauth4ssp\SimpleSamlPhpLink
+   */
+  protected $sspLink;
+
     /**
    * Creates a login route interceptor instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
-   * @param \Drupal\drupalauth4ssp\AccountValidatorInterface $accountValidator
-   *   Account validator.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
-   *   Configuration factory.
+   * @param \Drupal\drupalauth4ssp\UserValidatorInterface $userValidator
+   *   User validator.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   Entity type manager.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
@@ -95,20 +92,21 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    *   Session manager.
    * @param \Symfony\Component\HttpFoundation\Session\Session $session
    *   Session.
+   * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
+   *   Service to interact with simpleSAMLphp.
    */
   public function __construct(AccountInterface $account,
-    AccountValidatorInterface $accountValidator,
-    ConfigFactoryInterface $configurationFactory,
+    UserValidatorInterface $userValidator,
     EntityTypeManagerInterface $entityTypeManager,
     ModuleHandlerInterface $moduleHandler,
-    SessionManagerInterface $sessionManager, $session) {
+    SessionManagerInterface $sessionManager, $session, $sspLink) {
     $this->account = $account;
-    $this->accountValidator = $accountValidator;
-    $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
+    $this->userValidator = $userValidator;
     $this->entityTypeManager = $entityTypeManager;
     $this->moduleHandler = $moduleHandler;
     $this->sessionManager = $sessionManager;
     $this->session = $session;
+    $this->sspLink = $sspLink;
   }
 
   /**
@@ -117,56 +115,61 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   The request event to which we have subscribed.
    * @return void
-   * @throws \SimpleSAML\Error\CriticalConfigurationError
-   *   Thrown if something was wrong with the simpleSAMLphp configuration.
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function synchronizeSessionTypesOnRequest($event) : void {
     $request = $event->getRequest();
 
-    // Try to create a simpleSAMLphp instance.
-    $simpleSaml = new Simple($this->configuration->get('authsource'));
     // See if we have a simpleSAMLphp session.
-    if ($simpleSaml->isAuthenticated()) {
-      // Grab the user ID from the authname. First, grab all attributes.
-      $attributes = $simpleSaml->getAttributes();
-      $uid = (int) $attributes['uid'][0];
-      //$uid should never be zero.
-      assert($uid !== 0);
+    if ($this->sspLink->isAuthenticated()) {
+      // Grab the user ID.
+      $uid = $this->sspLink->getAttribute('uid');
       // If the two user IDs match, we're good -- the sessions are in sync.
       if ($this->account->id() === $uid) {
         return;
       }
-      // Otherwise, we need to sync the two sessions. Start by attempting to
-      // load the simpleSAMLphp user.
-      $user = $entityTypeManager->getStorage('user')->load($uid);
+      // Otherwise, we'll have to sync the sessions. If we are logged in, we
+      // know we're logged in as the wrong user, so log out.
       if (!$this->account->isAnonymous()) {
-        // Log out current user.
         user_logout();
       }
-      // Log in new user.
-      // Taken from src/UserSwitch.php from "Switch User" Drupal contrib module.
-      $this->sessionManager->regenerate();
-      $this->account->setAccount($user);
-      $this->session->set('uid', $user->id());
-      
-      // Now, reload the user to ensure it exists, and check its validity. We do
-      // this after we have already logged in the user to avoid race conditions.
-      $user = $entityTypeManager->getStorage('user')->load($uid);
-      if (!isset($user) || !$this->accountValidator->isAccountValid($this->account)) {
-        // Then we are in trouble. We should immediately log out.
-        // Taken from user_logout() in core/modules/user/user.module. We don't
-        // call user_logout() to avoid invoking hook_user_logout when the login
-        // process hasn't even finished yet (hook_user_login has not yet been
-        // invoked).
+      // Then attempt to load the simpleSAMLphp user.
+      $userStorage = $this->entityTypeManager->getStorage('user');
+      $user = $userStorage->load($uid);
+      if (!$this->userValidator->isUserValid($user)) {
+        // Since the user isn't valid, we should initiate single logout --
+        // this user never should have been logged in.
+        $sloUrl = UrlHelpers::generateSloUrl($request->getHost(), $request->getUri());
+        $event->setResponse(new RedirectResponse($sloUrl));
+        return;
+      }
+      // Attempt to log the user in, if the user exists.
+      $didUserExist = (bool) $user;
+      if ($didUserExist) {
+        // Taken from src/UserSwitch.php from "Switch User" Drupal contrib mod.
+        $this->sessionManager->regenerate();
+        $this->account->setAccount($user);
+        $this->session->set('uid', $user->id());
+      }
+      // Attempt to reload the user, to see if it still exists. If it existed
+      // before, but was deleted in between when we loaded in earlier and now,
+      // we don't want to be logged in. Also check to ensure the user is still
+      // an SSO-enabled user.
+      $user = $userStorage->load($uid);
+      if ($didUserExist && (!$user || !$this->userValidator->isUserValid($user))) {
+        // Since the user is invalid, we should try to log out everywhere.
+        // Taken from user_logout() in Drupal core "user" module. We don't
+        // invoke hook_user_logout, because we didn't finish logging in.
         $this->sessionManager->destroy();
-        $user->setAccount(new AnonymousUserSession());
-        // And perform single logout, as the current SSP user isn't exist or
-        // isn't valid (and thus shouldn't be logged in).
+        $this->account->setAccount(new AnonymousUserSession());
+        // Try to perform single logout.
         $sloUrl = UrlHelpers::generateSloUrl($request->getHost(), $request->getUri());
         $event->setResponse(new RedirectResponse($sloUrl));
       }
       else {
-        // Invoke hook_user_login.
+        //Finish the login process
         $this->moduleHandler->invokeAll('user_login', [$user]);
       }
     }
@@ -175,7 +178,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
       if (!$this->account->isAnonymous()) {
         // Check user validity -- if invalid (i.e., non-SSO user), don't log
         // user out; otherwise, do.
-        if ($this->accountValidator->isAccountValid($this->account)) {
+        if ($this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
           user_logout();
         }
       }

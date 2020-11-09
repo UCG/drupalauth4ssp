@@ -4,28 +4,31 @@ services:
     arguments: ['@config.factory']
   drupalauth4ssp.sso_login_route_interceptor_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\SsoLoginRouteInterceptor
-    arguments: ['@current_user', '@drupalauth4ssp.account_validator', '@drupalauth4ssp.return_url_manager']
+    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@drupalauth4ssp.url_helper']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.normal_login_response_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLoginRouteResponseSubscriber
-    arguments: ['@current_user', '@drupalauth4ssp.account_validator', '@config.factory']
+    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.normal_logout_response_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutRouteResponseSubscriber
-    arguments: ['@current_user', '@config.factory']
+    arguments: ['@current_user', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.session_synchronization_interceptor_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\SessionSynchronizationInterceptor
-    arguments: ['@current_user', '@drupalauth4ssp.account_validator', '@config.factory', '@entity_type.manager', '@module_handler', '@session_manager', '@session']
+    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@module_handler', '@session_manager', '@session', '@drupalauth4ssp.ssp_link']
     tags:
       - { name: event_subscriber }
-  drupalauth4ssp.account_validator:
-    class: Drupal\drupalauth4ssp\ChainedAccountValidator
+  drupalauth4ssp.user_validator:
+    class: Drupal\drupalauth4ssp\ChainedUserValidator
     tags:
-      - { name: service_collector, tag: 'drupalauth4ssp.account_validator.sub_validator', call: addValidator }
-  drupalauth4ssp.return_url_manager:
-    class: Drupal\drupalauth4ssp\Helper\ReturnToUrlManager
-    arguments: ['@path.matcher', '@config.factory', '@request_stack']
+      - { name: service_collector, tag: 'drupalauth4ssp.user_validator.sub_validator', call: addValidator }
+  drupalauth4ssp.url_helper:
+    class: Drupal\drupalauth4ssp\Helper\UrlHelperService
+    arguments: ['@path.matcher', '@config.factory', '@request_stack', '@path.validator']
+  drupalauth4ssp.ssp_link:
+    class: Drupal\drupalauth4ssp\SimpleSamlPhpLink
+    arguments: ['@config.factory', '@request_stack']
