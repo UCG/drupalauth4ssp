@@ -84,7 +84,7 @@ class SimpleSamlPhpLink {
    *   to be something other than 'phpsession'
    */
   public function initiateAuthenticationIfNecessary(string $returnUrl) : void {
-    $this->createSimpleSamlInstanceIfNecessary();
+    $this->prepareSimpleSamlStuff();
     // Check session storage type
     $this->checkSimpleSamlPhpStorageTypeValid();
 
@@ -99,7 +99,7 @@ class SimpleSamlPhpLink {
    *   'TRUE' if the user has an authenticated SSP session; else 'FALSE'.
    */
   public function isAuthenticated() : bool {
-    $this->createSimpleSamlInstanceIfNecessary();
+    $this->prepareSimpleSamlStuff();
 
     return $this->isLoggedIn;
   }
@@ -111,7 +111,7 @@ class SimpleSamlPhpLink {
    *   Array of attributes.
    */
   public function getAttributes() {
-    $this->createSimpleSamlInstanceIfNecessary();
+    $this->prepareSimpleSamlStuff();
 
     return $this->attributes;
   }
