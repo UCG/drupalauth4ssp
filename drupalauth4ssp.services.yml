@@ -9,17 +9,17 @@ services:
       - { name: event_subscriber }
   drupalauth4ssp.normal_login_response_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLoginRouteResponseSubscriber
-    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
+    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@request_stack', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.normal_logout_response_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutRouteResponseSubscriber
-    arguments: ['@current_user', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
+    arguments: ['@current_user', '@request_stack', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.normal_logout_login_request_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutLoginRouteRequestSubscriber
-    arguments: ['@current_user', '@drupalauth4ssp.url_helper']
+    arguments: ['@current_user', '@request_stack', '@drupalauth4ssp.url_helper']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.session_synchronization_interceptor_subscriber:

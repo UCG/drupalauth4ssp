@@ -66,7 +66,7 @@ class UrlHelperService {
    *   such parameter
    */
   public function getReturnToUrl() : ?string {
-    return $this->requestStack->getCurrentRequest()->query->get('ReturnTo');
+    return $this->requestStack->getMasterRequest()->query->get('ReturnTo');
   }
 
   /**
@@ -80,7 +80,7 @@ class UrlHelperService {
   public function isReturnToUrlValid() : bool {
     // This is adapted from the non-forked version of
     // drupalauth4ssp_user_login_submit() in drupalauth4ssp.module.
-    $returnToUrl = $this->requestStack->getCurrentRequest()->query->get('ReturnTo');
+    $returnToUrl = $this->requestStack->getMasterRequest()->query->get('ReturnTo');
     // Reject if return to URL is empty.
     if (empty($returnToUrl)) {
       return FALSE;

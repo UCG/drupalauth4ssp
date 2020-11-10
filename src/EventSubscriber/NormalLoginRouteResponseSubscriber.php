@@ -48,6 +48,13 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    */
   protected $entityTypeManager;
 
+  /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
+
     /**
    * Service to interact with simpleSAMLphp.
    *
@@ -78,6 +85,8 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    *   User validator.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   Entity type manager.
+   * @param \Symfony\Component\HttpFoundation\RequestStack
+   *   Request stack.
    * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   URL helper service.
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
@@ -85,13 +94,14 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    * @param \Drupal\Core\PageCache\ResponsePolicy\KillSwitch $cacheKillSwitch
    *   Kill switch with which to disable caching.
    */
-  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $urlHelper, $sspLink, $cacheKillSwitch) {
+  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $requestStack, $urlHelper, $sspLink, $cacheKillSwitch) {
     $this->account = $account;
     $this->userValidator = $userValidator;
     $this->urlHelper = $urlHelper;
     $this->sspLink = $sspLink;
     $this->entityTypeManager = $entityTypeManager;
     $this->cacheKillSwitch = $cacheKillSwitch;
+    $this->requestStack = $requestStack;
   }
 
   /**
@@ -112,9 +122,6 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
     $this->cacheKillSwitch->trigger();
 
     $request = $event->getRequest();
-    if (!$event->isMasterRequest()) {
-      return;
-    }
 
     // If we're not using the default login route, get out.
     if ($request->attributes->get('_route') != 'user.login') {
@@ -142,7 +149,7 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
 
     // Proceed. If we can, we'll redirect to the referrer. This overrides the
     // default user.logout behavior.
-    $referrer = $request->server->get('HTTP_REFERER');
+    $referrer = $this->requestStack->getMasterRequest()->server->get('HTTP_REFERER');
     // Check that the referrer is valid and points to a local URL.
     if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
       $returnUrl = $referrer;

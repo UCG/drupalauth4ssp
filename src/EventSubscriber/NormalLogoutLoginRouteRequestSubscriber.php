@@ -32,6 +32,13 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
   protected $account;
 
   /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
+
+  /**
    * URL helper service.
    *
    * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
@@ -43,12 +50,15 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Current account.
+   * @param \Symfony\Component\HttpFoundation\RequestStack
+   *   Request stack.
    * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService
    *   URL helper service.
    */
-  public function __construct(AccountInterface $account, $urlHelper) {
+  public function __construct(AccountInterface $account, $requestStack, $urlHelper) {
     $this->account = $account;
     $this->urlHelper = $urlHelper;
+    $this->requestStack = $requestStack;
   }
 
   /**
@@ -74,7 +84,7 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
 
     if (!$account->isAnonymous()) {
       // We will attempt to redirect to the referrer.
-      $referrer = $event->request->server->get('HTTP_REFERER');
+      $referrer = $this->requestStack->getMasterRequest()->server->get('HTTP_REFERER');
       // Check valididity of referrer URL, and that it is local.
       if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
         $returnUrl = $referrer;

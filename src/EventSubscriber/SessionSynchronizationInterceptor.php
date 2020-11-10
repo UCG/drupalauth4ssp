@@ -120,6 +120,10 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function synchronizeSessionTypesOnRequest($event) : void {
+    // We don't want to perform synchronization except on master requests.
+    if (!$event->isMasterRequest()) {
+      return;
+    }
     $request = $event->getRequest();
 
     // See if we have a simpleSAMLphp session.

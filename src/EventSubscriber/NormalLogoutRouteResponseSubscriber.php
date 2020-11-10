@@ -37,11 +37,11 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
   protected $cacheKillSwitch;
 
   /**
-   * URL helper service.
+   * The request stack.
    *
-   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
+   * @var \Symfony\Component\HttpFoundation\RequestStack
    */
-  protected $urlHelper;
+  protected $requestStack;
 
   /**
    * Service to interact with simpleSAMLphp.
@@ -51,10 +51,19 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
   protected $sspLink;
 
   /**
+   * URL helper service.
+   *
+   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
+   */
+  protected $urlHelper;
+
+  /**
    * Creates a normal logout route response subscriber instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
+   *   Request stack.
    * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   URL helper service.
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
@@ -62,11 +71,12 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    * @param \Drupal\Core\PageCache\ResponsePolicy\KillSwitch $cacheKillSwitch
    *   Kill switch with which to disable caching.
    */
-  public function __construct(AccountInterface $account, $urlHelper, $sspLink, $cacheKillSwitch) {
+  public function __construct(AccountInterface $account, $requestStack, $urlHelper, $sspLink, $cacheKillSwitch) {
     $this->account = $account;
     $this->urlHelper = $urlHelper;
     $this->sspLink = $sspLink;
     $this->cacheKillSwitch = $cacheKillSwitch;
+    $this->requestStack = $requestStack;
   }
 
   /**
@@ -83,10 +93,8 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
     // We don't want any caching.
     $this->cacheKillSwitch->trigger();
 
-    if (!$event->isMasterRequest()) {
-      return;
-    }
     $request = $event->getRequest();
+    $masterRequest = $this->requestStack->getMasterRequest();
 
     // If we're not using the default logout route, get out.
     if ($request->attributes->get('_route') != 'user.logout') {
@@ -114,7 +122,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
 
     // If we can, we'll redirect to the referrer. This overrides the
     // default user.logout behavior.
-    $referrer = $request->server->get('HTTP_REFERER');
+    $referrer = $masterRequest->server->get('HTTP_REFERER');
     // Check that the referrer is valid and points to a local URL.
     if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
       $returnUrl = $referrer;
@@ -126,7 +134,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
 
     // Now go ahead and initiate single logout.
     // Build the single logout URL.
-    $singleLogoutUrl = UrlHelpers::generateSloUrl($request->getHost(), $returnUrl);
+    $singleLogoutUrl = UrlHelpers::generateSloUrl($masterRequest->getHost(), $returnUrl);
     // Redirect to the single logout URL
     $event->setResponse(new RedirectResponse($singleLogoutUrl));
     $event->stopPropagation();

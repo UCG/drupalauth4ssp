@@ -25,13 +25,6 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
   protected $account;
 
   /**
-   * Request stack.
-   *
-   * @var \Symfony\Component\HttpFoundation\RequestStack;
-   */
-  protected $requestStack;
-
-  /**
    * Helper service to obtain and determine if 'ReturnTo' URL can be used.
    *
    * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService;
@@ -43,14 +36,11 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
-   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
-   *   Request stack.
    * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   Helper service to obtain and determine if 'ReturnTo' URL can be used.
    */
-  public function __construct(AccountInterface $account, $requestStack, $urlHelper) {
+  public function __construct(AccountInterface $account, $urlHelper) {
     $this->account = $account;
-    $this->requestStack = $requestStack;
     $this->urlHelper = $urlHelper;
   }
   /**
@@ -61,7 +51,6 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    *   or, if that URL doesn't exist, to the home page.
    */
   public function handle() {
-    $request = $this->requestStack->getCurrentRequest();
     if (!$this->account->isAnonymous()) {
       //Log the user out.
       user_logout();
@@ -83,7 +72,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    return new static($container->get('current_user'), $container->get('request_stack'), $container->get('drupalauth4ssp.url_helper'));
+    return new static($container->get('current_user'), $container->get('drupalauth4ssp.url_helper'));
   }
 
 }
