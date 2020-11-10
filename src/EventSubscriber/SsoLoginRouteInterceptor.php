@@ -15,14 +15,12 @@ use Symfony\Component\HttpKernel\KernelEvents;
 /**
  * Handles SSO log in route when user is already logged in or out.
  *
- * By default, Drupal returns a 403 when someone tries to access a login route
- * when the user is logged in. Here, for the 'drupalauth4ssp.ssoLogin' route, we
- * instead check to see if the current user is a valid (SSO-enabled) user, and,
- * if so, set the appropriate user cookie (for the drupalauth simpleSAMLphp
- * module). Also redirects the user to finish the SSO login process. If we did
- * not do this, if we happened to be logged in to Drupal but not to
- * simpleSAMLphp, SP-initiated SSO would fail (even though there is a valid
- * Drupal session at the IdP).
+ * Here, for the 'drupalauth4ssp.ssoLogin' route, we check to see if the current
+ * user is a valid (SSO-enabled) user, and, if so, set the appropriate user
+ * cookie (for the drupalauth simpleSAMLphp module). Also redirects the user to
+ * finish the SSO login process. If we did not do this, if we happened to be
+ * logged in to Drupal but not to simpleSAMLphp, SP-initiated SSO would fail
+ * (even though there is a valid Drupal session at the IdP).
  */
 class SsoLoginRouteInterceptor implements EventSubscriberInterface {
 
