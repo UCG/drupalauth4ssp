@@ -9,12 +9,12 @@ services:
       - { name: event_subscriber }
   drupalauth4ssp.normal_login_response_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLoginRouteResponseSubscriber
-    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link']
+    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.normal_logout_response_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutRouteResponseSubscriber
-    arguments: ['@current_user', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link']
+    arguments: ['@current_user', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.session_synchronization_interceptor_subscriber:
@@ -32,3 +32,8 @@ services:
   drupalauth4ssp.ssp_link:
     class: Drupal\drupalauth4ssp\SimpleSamlPhpLink
     arguments: ['@config.factory', '@request_stack']
+  drupalauth4ssp.no_sso_session_page_cache_request_policy:
+    class: Drupal\drupalauth4ssp\PageCacheRequestPolicy\NoSsoSessionPageCacheRequestPolicy
+    arguments: ['@drupalauth4ssp.ssp_link']
+    tags:
+      - { name: page_cache_request_policy }

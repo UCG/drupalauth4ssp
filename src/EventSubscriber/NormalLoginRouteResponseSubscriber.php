@@ -35,6 +35,13 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
   protected $account;
 
   /**
+   * Kill switch with which to disable caching.
+   *
+   * @var \Drupal\Core\PageCache\ResponsePolicy\KillSwitch
+   */
+  protected $cacheKillSwitch;
+
+  /**
    * Entity type manager.
    *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
@@ -75,18 +82,21 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    *   URL helper service.
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
    *   Service to interact with simpleSAMLphp.
+   * @param \Drupal\Core\PageCache\ResponsePolicy\KillSwitch $cacheKillSwitch
+   *   Kill switch with which to disable caching.
    */
-  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $urlHelper, $sspLink) {
+  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $urlHelper, $sspLink, $cacheKillSwitch) {
     $this->account = $account;
     $this->userValidator = $userValidator;
     $this->urlHelper = $urlHelper;
     $this->sspLink = $sspLink;
     $this->entityTypeManager = $entityTypeManager;
+    $this->cacheKillSwitch = $cacheKillSwitch;
   }
 
   /**
    * Handles response event for standard login routes.
-   * 
+   *
    * Notes: This method breaks the Symfony request-response flow. Also, if
    * simpleSAMLphp authentication is required, this method doesn't return.
    *
@@ -98,6 +108,9 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function handleNormalLoginResponse($event) : void {
+    // We don't want any caching.
+    $this->cacheKillSwitch->trigger();
+
     $request = $event->getRequest();
     if (!$event->isMasterRequest()) {
       return;

@@ -12,9 +12,13 @@ drupalauth4ssp.ssoLogin:
     _title: 'Log in'
   requirements:
     _access: 'TRUE'
+  options:
+    no_cache: TRUE
 drupalauth4ssp.ssoLogout:
   path: '/ssoLogout'
   defaults:
     _controller: '\Drupal\drupalauth4ssp\Controller\SsoLogoutController::handle'
   requirements:
     _access: 'TRUE'
+  options:
+    no_cache: TRUE

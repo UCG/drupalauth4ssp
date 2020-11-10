@@ -30,6 +30,13 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
   protected $account;
 
   /**
+   * Kill switch with which to disable caching.
+   *
+   * @var \Drupal\Core\PageCache\ResponsePolicy\KillSwitch
+   */
+  protected $cacheKillSwitch;
+
+  /**
    * URL helper service.
    *
    * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
@@ -52,16 +59,18 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    *   URL helper service.
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
    *   Service to interact with simpleSAMLphp.
+   * @param \Drupal\Core\PageCache\ResponsePolicy\KillSwitch $cacheKillSwitch
+   *   Kill switch with which to disable caching.
    */
-  public function __construct(AccountInterface $account, $urlHelper, $sspLink) {
+  public function __construct(AccountInterface $account, $urlHelper, $sspLink, $cacheKillSwitch) {
     $this->account = $account;
     $this->urlHelper = $urlHelper;
     $this->sspLink = $sspLink;
+    $this->cacheKillSwitch = $cacheKillSwitch;
   }
 
   /**
    * Handles response event for standard logout routes.
-   *
    *
    * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
    *   Response event.
@@ -71,6 +80,9 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function handleNormalLogoutResponse($event) : void {
+    // We don't want any caching.
+    $this->cacheKillSwitch->trigger();
+
     if (!$event->isMasterRequest()) {
       return;
     }
