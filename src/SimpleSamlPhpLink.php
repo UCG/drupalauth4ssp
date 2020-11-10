@@ -42,13 +42,6 @@ class SimpleSamlPhpLink {
   protected $configuration;
 
   /**
-   * The request stack.
-   *
-   * @var \Symfony\Component\HttpFoundation\RequestStack
-   */
-  protected $requestStack;
-
-  /**
    * simpleSAMLphp object.
    *
    * @var \SimpleSAML\Auth\Simple
@@ -60,12 +53,9 @@ class SimpleSamlPhpLink {
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
    *   The configuration factory.
-   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
-   *   The request stack.
    */
   public function __construct(ConfigFactoryInterface $configurationFactory, $requestStack) {
     $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
-    $this->requestStack = $requestStack;
   }
 
   /**

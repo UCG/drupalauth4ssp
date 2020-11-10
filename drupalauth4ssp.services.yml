@@ -36,7 +36,7 @@ services:
     arguments: ['@path.matcher', '@config.factory', '@request_stack', '@path.validator']
   drupalauth4ssp.ssp_link:
     class: Drupal\drupalauth4ssp\SimpleSamlPhpLink
-    arguments: ['@config.factory', '@request_stack']
+    arguments: ['@config.factory']
   drupalauth4ssp.no_sso_session_page_cache_request_policy:
     class: Drupal\drupalauth4ssp\PageCacheRequestPolicy\NoSsoSessionPageCacheRequestPolicy
     arguments: ['@drupalauth4ssp.ssp_link']
