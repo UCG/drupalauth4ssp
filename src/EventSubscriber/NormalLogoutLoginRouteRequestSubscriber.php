@@ -6,6 +6,7 @@ namespace Drupal\drupalauth4ssp\EventSubscriber;
 
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\drupalauth4ssp\Helper\HttpHelpers;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -69,9 +70,6 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
    * @return void
    */
   public function handleLogoutOrLoginRequest($event) : void {
-    if (!$event->isMasterRequest()) {
-      return;
-    }
 
     // If we're not an unauthenticated user on the logout route, or an
     // authenticated user on the login route, get out, as this subscriber is
@@ -82,9 +80,11 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
       return;
     }
 
+    $masterRequest = $this->requestStack->getMasterRequest();
+
     if (!$account->isAnonymous()) {
       // We will attempt to redirect to the referrer.
-      $referrer = $this->requestStack->getMasterRequest()->server->get('HTTP_REFERER');
+      $referrer = $masterRequest->server->get('HTTP_REFERER');
       // Check valididity of referrer URL, and that it is local.
       if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
         $returnUrl = $referrer;
@@ -94,7 +94,7 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
         $returnUrl = Url::fromRoute('<front>', [], ['absolute' => TRUE]);
       }
 
-      $event->setResponse(new RedirectResponse($returnUrl));
+      $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
     }
   }
 

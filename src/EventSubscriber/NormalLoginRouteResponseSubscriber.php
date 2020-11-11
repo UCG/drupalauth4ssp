@@ -7,6 +7,7 @@ namespace Drupal\drupalauth4ssp\EventSubscriber;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\drupalauth4ssp\Helper\HttpHelpers;
 use Drupal\drupalauth4ssp\SimpleSamlPhpLink;
 use Drupal\drupalauth4ssp\UserValidatorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -149,7 +150,10 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
 
     // Proceed. If we can, we'll redirect to the referrer. This overrides the
     // default user.logout behavior.
-    $referrer = $this->requestStack->getMasterRequest()->server->get('HTTP_REFERER');
+
+    $masterRequest = $this->requestStack->getMasterRequest();
+
+    $referrer = $masterRequest->server->get('HTTP_REFERER');
     // Check that the referrer is valid and points to a local URL.
     if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
       $returnUrl = $referrer;
@@ -163,8 +167,7 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
     $this->sspLink->initiateAuthenticationIfNecessary($returnUrl);
     // For consistency, initiate redirect to $returnUrl even if we were already
     // authenticated.
-    $event->setResponse(new RedirectResponse($returnUrl));
-    $event->stopPropagation();
+    $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
   }
 
   /**

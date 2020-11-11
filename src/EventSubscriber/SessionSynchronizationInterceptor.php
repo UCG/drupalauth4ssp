@@ -146,7 +146,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
         // Since the user isn't valid, we should initiate single logout --
         // this user never should have been logged in.
         $sloUrl = UrlHelpers::generateSloUrl($request->getHost(), $request->getUri());
-        $event->setResponse(new RedirectResponse($sloUrl));
+        $event->setResponse(new RedirectResponse($sloUrl, HttpHelpers::getAppropriateTemporaryRedirect($request->getMethod())));
         return;
       }
       // Attempt to log the user in, if the user exists.
@@ -170,7 +170,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
         $this->account->setAccount(new AnonymousUserSession());
         // Try to perform single logout.
         $sloUrl = UrlHelpers::generateSloUrl($request->getHost(), $request->getUri());
-        $event->setResponse(new RedirectResponse($sloUrl));
+        $event->setResponse(new RedirectResponse($sloUrl, HttpHelpers::getAppropriateTemporaryRedirect($request->getMethod())));
       }
       else {
         //Finish the login process

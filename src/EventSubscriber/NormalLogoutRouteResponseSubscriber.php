@@ -136,8 +136,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
     // Build the single logout URL.
     $singleLogoutUrl = UrlHelpers::generateSloUrl($masterRequest->getHost(), $returnUrl);
     // Redirect to the single logout URL
-    $event->setResponse(new RedirectResponse($singleLogoutUrl));
-    $event->stopPropagation();
+    $event->setResponse(new RedirectResponse($singleLogoutUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
   }
 
   /**

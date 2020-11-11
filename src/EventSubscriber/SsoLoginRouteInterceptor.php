@@ -93,13 +93,16 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
     if ($this->account->isAnonymous()) {
       return;
     }
+
+    $masterRequest = $this->requestStack->getMasterRequest();
+
     // Otherwise, check to see if we are allowed to perform SSO login.
     if ($this->userValidator->isAccountValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
       // We have an SSO-enabled user! We will have to try to pass on his ID.
       drupalauth4ssp_set_user_cookie($this->account);
       // Now, redirect the user to the 'ReturnTo' URL if possible.
       if ($this->urlHelper->isReturnToUrlValid()) {
-        $event->setResponse(new RedirectResponse($this->returnToUrlManager->getReturnToUrl()));
+        $event->setResponse(new RedirectResponse($this->returnToUrlManager->getReturnToUrl(), HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
       }
       else {
         // Return 403.

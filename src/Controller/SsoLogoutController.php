@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\drupalauth4ssp\Helper\HttpHelpers;
 use Drupal\drupalauth4ssp\Helper\UrlHelperService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -25,6 +26,13 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
   protected $account;
 
   /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
+
+  /**
    * Helper service to obtain and determine if 'ReturnTo' URL can be used.
    *
    * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService;
@@ -38,10 +46,13 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    *   Account.
    * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   Helper service to obtain and determine if 'ReturnTo' URL can be used.
+   * @param \Symfony\Component\HttpFoundation\RequestStack
+   *   Request stack.
    */
-  public function __construct(AccountInterface $account, $urlHelper) {
+  public function __construct(AccountInterface $account, $urlHelper, $requestStack) {
     $this->account = $account;
     $this->urlHelper = $urlHelper;
+    $this->requestStack = $requestStack;
   }
   /**
    * Contains controller logic.
@@ -60,11 +71,12 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
     // Attempt to redirect, if possible (if the return URL parameter isn't
     // empty and is allowed) to the return URL query string parameter.
     // Otherwise, redirect to the home page.
+    $masterRequest = $this->requestStack->getMasterRequest();
     if ($this->urlHelper->isReturnToUrlValid()) {
-      return new RedirectResponse($this->urlHelper->getReturnToUrl());
+      return new RedirectResponse($this->urlHelper->getReturnToUrl(), HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod()));
     }
     else {
-      return new RedirectResponse(Url::fromRoute('<front>')->setAbsolute()->toString());
+      return new RedirectResponse(Url::fromRoute('<front>')->setAbsolute()->toString(), HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod()));
     }
   }
 
@@ -72,7 +84,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    return new static($container->get('current_user'), $container->get('drupalauth4ssp.url_helper'));
+    return new static($container->get('current_user'), $container->get('drupalauth4ssp.url_helper'), $container->get('request_stack'));
   }
 
 }
