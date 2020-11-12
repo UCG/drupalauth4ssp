@@ -39,4 +39,5 @@ final class UrlHelpers {
     $queryString = http_build_query(['ReturnTo' => $returnToUrl]);
     return 'https://' . $hostname . '/simplesaml/saml2/idp/SingleLogoutService.php?' . $queryString;
   }
+
 }

@@ -115,10 +115,6 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
     if (!isset($shouldInitiateLogout) || !$shouldInitiateLogout) {
       return;
     }
-    // Proceed only if authenticated.
-    if (!$this->sspLink->isAuthenticated()) {
-      return;
-    }
 
     // If we can, we'll redirect to the referrer. This overrides the
     // default user.logout behavior.
@@ -131,12 +127,17 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
       // Otherwise, just go to the front page.
       $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
     }
-
-    // Now go ahead and initiate single logout.
-    // Build the single logout URL.
-    $singleLogoutUrl = UrlHelpers::generateSloUrl($masterRequest->getHost(), $returnUrl);
-    // Redirect to the single logout URL
-    $event->setResponse(new RedirectResponse($singleLogoutUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
+    // Redirect immediately if we are unauthenticated with simpleSAMLphp.
+    if (!$this->sspLink->isAuthenticated()) {
+      $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
+    }
+    else {
+      // Otherwise, go ahead and initiate single logout.
+      // Build the single logout URL.
+      $singleLogoutUrl = UrlHelpers::generateSloUrl($masterRequest->getHost(), $returnUrl);
+      // Redirect to the single logout URL
+      $event->setResponse(new RedirectResponse($singleLogoutUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
+    }
   }
 
   /**

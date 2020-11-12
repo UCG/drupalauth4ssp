@@ -26,6 +26,7 @@ class UrlHelperService {
    * @var \Drupal\Core\Path\PathMatcherInterface
    */
   protected $pathMatcher;
+
   /**
    * Path validator.
    *
@@ -41,10 +42,10 @@ class UrlHelperService {
   protected $requestStack;
 
   /**
-   * Creates a new UrlHelperService object.
+   * Creates a new \Drupal\drupalauth4ssp\Helper\UrlHelperService object.
    *
    * @param \Drupal\Core\Path\PathMatcherInterface $pathMatcher
-   *   Path mtcher.
+   *   Path matcher.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
    *   Configuration factory.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
@@ -72,10 +73,11 @@ class UrlHelperService {
   /**
    * Checks to see if the 'ReturnTo' URL query string parameter is valid.
    *
-   * The return URL query string parameter is valid if it 1) is non-empty and 2)
-   * is allowed by the drupalauth4ssp module settings.
+   * The return URL query string parameter is valid if it 1) is non-empty() and
+   * 2) is allowed by the drupalauth4ssp module settings.
    *
-   * @return bool 'TRUE' if valid, else 'FALSE'
+   * @return bool
+   *   'TRUE' if valid, else 'FALSE'.
    */
   public function isReturnToUrlValid() : bool {
     // This is adapted from the non-forked version of
@@ -96,8 +98,10 @@ class UrlHelperService {
    * Checks to see if URL path $url is valid, accessible by the current user,
    * and if it points to the local Drupal installation.
    *
-   * @return bool 'TRUE' if conditions in description are met, else 'FALSE'
-   * @param mixed $url URL to check
+   * @param mixed $url
+   *   URL to check.
+   * @return bool
+   *   'TRUE' if conditions in description are met, else 'FALSE'
    */
   public function isUrlValidAndLocal($url) {
     if (!$url) {
@@ -116,4 +120,5 @@ class UrlHelperService {
       return FALSE;
     }
   }
+
 }

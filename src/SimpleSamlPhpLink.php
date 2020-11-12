@@ -54,7 +54,7 @@ class SimpleSamlPhpLink {
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
    *   The configuration factory.
    */
-  public function __construct(ConfigFactoryInterface $configurationFactory, $requestStack) {
+  public function __construct(ConfigFactoryInterface $configurationFactory) {
     $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
   }
 
@@ -70,13 +70,10 @@ class SimpleSamlPhpLink {
    *   URL to return to after successful login.
    * @throws
    *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
-   *   Thrown if the simpleSAMLphp session storage type could not be determined
-   *   to be something other than 'phpsession'
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function initiateAuthenticationIfNecessary(string $returnUrl) : void {
     $this->prepareSimpleSamlStuff();
-    // Check session storage type
-    $this->checkSimpleSamlPhpStorageTypeValid();
 
     // Go ahead and forward to the IdP for login.
     $this->simpleSaml->requireAuth(['ReturnTo' => $returnUrl, 'KeepPost' => 'FALSE']);
@@ -87,6 +84,9 @@ class SimpleSamlPhpLink {
    *
    * @return bool
    *   'TRUE' if the user has an authenticated SSP session; else 'FALSE'.
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function isAuthenticated() : bool {
     $this->prepareSimpleSamlStuff();
@@ -99,6 +99,9 @@ class SimpleSamlPhpLink {
    *
    * @return array
    *   Array of attributes.
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function getAttributes() {
     $this->prepareSimpleSamlStuff();
@@ -117,6 +120,9 @@ class SimpleSamlPhpLink {
    *
    * @throws \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpAttributeException
    *   Exception when attribute is not set.
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function getAttribute($attribute) {
     $this->getAttributes();
@@ -135,7 +141,7 @@ class SimpleSamlPhpLink {
    *
    * This should be called by all methods in this class before performing
    * anything related to simpleSAMLphp. This method ensures the simpleSAMLphp
-   * method is properly set up, and that all needed data associated with
+   * instance is properly set up, and that all needed data associated with
    * simpleSAMLphp is loaded into this object's properties.
    *
    * @throws
@@ -176,7 +182,10 @@ class SimpleSamlPhpLink {
       // friendliness.
       throw new SimpleSamlPhpInternalConfigException(NULL, 0, $e);
     }
-    
+
+    // Ensure SSP session storage type is set correctly.
+    $this->checkSimpleSamlPhpStorageTypeValid();
+
     // Verify postcondition.
     assert(isset($this->simpleSaml));
   }
@@ -189,6 +198,8 @@ class SimpleSamlPhpLink {
    * @return void
    * @throws
    *   \Drupal\simplesamlphp_auth\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if session storage type could not be determined to be valid, or if
+   *   another simpleSAMLphp-related configuration issue occurs.
    */
   protected function checkSimpleSamlPhpStorageTypeValid() : void {
     // Grab simpleSAMLphp configuration if we can.
@@ -207,7 +218,7 @@ class SimpleSamlPhpLink {
    *
    * @return Configuration SSP configuration.
    * @throws \Drupal\simplesamlphp_auth\SimpleSamlPhpInternalConfigException
-   *   Configuration couldn't be loaded.
+   *   Thrown if simpleSAMLphp configuration couldn't be loaded.
    */
   protected static function getSimpleSamlConfiguration() : Configuration {
     try {
@@ -217,4 +228,5 @@ class SimpleSamlPhpLink {
       throw new SimpleSamlPhpInternalConfigException('Could not obtain simpleSAMLphp configuration.', 0, $e);
     }
   }
+
 }

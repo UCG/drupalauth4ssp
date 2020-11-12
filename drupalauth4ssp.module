@@ -11,9 +11,9 @@
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\user\Entity\User;
 use SimpleSAML\Configuration;
 use SimpleSAML\Session;
-use Drupal\user\Entity\User;
 
 /**
  * Implements hook_user_login().
@@ -182,7 +182,8 @@ function drupalauth4ssp_user_login_submit($form, \Drupal\Core\Form\FormStateInte
 /**
  * Gets the current route name, if possible.
  *
- * @return string|NULL Current route name, or 'NULL' if no route found.
+ * @return string|NULL
+ *   Current route name, or 'NULL' if no route found.
  */
 function _drupalauth4ssp_get_current_route() : ?string {
   return \Drupal::routeMatch()->getRouteName();
@@ -191,26 +192,29 @@ function _drupalauth4ssp_get_current_route() : ?string {
 /**
  * Checks to see if the current route is the standard login route (user.login).
  *
- * @return bool 'TRUE' if standard login route, else 'FALSE'.
+ * @return bool
+ *   'TRUE' if standard login route, else 'FALSE'.
  */
 function _drupalauth4ssp_is_current_route_normal_login_route() : bool {
-  return _drupalauth4ssp_get_current_route() === 'user.login';
+  return _drupalauth4ssp_get_current_route() == 'user.login';
 }
 
 /**
  * Checks to see if current route is the standard logout route (user.logout).
  *
- * @return bool 'TRUE' if standard logout route, else 'FALSE'.
+ * @return bool
+ *   'TRUE' if standard logout route, else 'FALSE'.
  */
 function _drupalauth4ssp_is_current_route_normal_logout_route() : bool {
-  return _drupalauth4ssp_get_current_route() === 'user.logout';
+  return _drupalauth4ssp_get_current_route() == 'user.logout';
 }
 
 /**
  * Checks to see if the current route is the SP-initiated SSO login route.
  *
- * @return bool 'TRUE' if SP-initiated SSO route, else 'FALSE'.
+ * @return bool
+ *   'TRUE' if SP-initiated SSO route, else 'FALSE'.
  */
 function _drupalauth4ssp_is_current_route_sso_login_route() : bool {
-  return _drupalauth4ssp_get_current_route() === 'drupalauth4ssp.ssoLogin';
+  return _drupalauth4ssp_get_current_route() == 'drupalauth4ssp.ssoLogin';
 }

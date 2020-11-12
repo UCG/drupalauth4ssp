@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Handles SSO log in route when user is already logged in or out.
+ * Handles SSO log in route when user is already logged in.
  *
  * Here, for the 'drupalauth4ssp.ssoLogin' route, we check to see if the current
  * user is a valid (SSO-enabled) user, and, if so, set the appropriate user

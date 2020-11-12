@@ -17,12 +17,12 @@ final class StringHelpers {
   }
 
   /**
-   * Checks if $str is either null or an empty string.
+   * Checks if $str is either 'NULL or an empty string.
    *
    * @param string|NULL $str
    *   String to check.
    * @return bool
-   *   'TRUE' if $str is unset or empty string, else 'FALSE'.
+   *   'TRUE' if $str is 'NULL' or empty string, else 'FALSE'.
    */
   static function isNullOrEmpty(?string $str) : bool {
     return !isset($str) || $str === '';
@@ -30,14 +30,13 @@ final class StringHelpers {
 
   /**
    * Get $str or a default message if $str is null or empty.
-   * 
-   * If $str is null or empty (when coerced to a string), returns
-   * $defaultMessage; else, returns $str.
+   *
+   * If $str is null or empty, returns $defaultMessage; else, returns $str.
    *
    * @param string|NULL $str
    *   String to check / return if possible.
    * @param string|NULL $defaultMessage
-   *   Default message if $str is null or empty.
+   *   Default message if $str is 'NULL' or empty.
    * @return string|NULL
    */
   static function getValueOrDefault(?string $str, ?string $defaultMessage) : ?string {

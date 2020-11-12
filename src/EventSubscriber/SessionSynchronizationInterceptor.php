@@ -124,6 +124,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
     if (!$event->isMasterRequest()) {
       return;
     }
+
     $request = $event->getRequest();
 
     // See if we have a simpleSAMLphp session.
@@ -142,27 +143,24 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
       // Then attempt to load the simpleSAMLphp user.
       $userStorage = $this->entityTypeManager->getStorage('user');
       $user = $userStorage->load($uid);
-      if (!$this->userValidator->isUserValid($user)) {
+      if (!$user || !$this->userValidator->isUserValid($user)) {
         // Since the user isn't valid, we should initiate single logout --
-        // this user never should have been logged in.
+        // this user doesn't exist now or never should have been logged in.
         $sloUrl = UrlHelpers::generateSloUrl($request->getHost(), $request->getUri());
         $event->setResponse(new RedirectResponse($sloUrl, HttpHelpers::getAppropriateTemporaryRedirect($request->getMethod())));
         return;
       }
-      // Attempt to log the user in, if the user exists.
-      $didUserExist = (bool) $user;
-      if ($didUserExist) {
-        // Taken from src/UserSwitch.php from "Switch User" Drupal contrib mod.
-        $this->sessionManager->regenerate();
-        $this->account->setAccount($user);
-        $this->session->set('uid', $user->id());
-      }
+      // Attempt to log the user in.
+      // Taken from src/UserSwitch.php from "Switch User" Drupal contrib mod.
+      $this->sessionManager->regenerate();
+      $this->account->setAccount($user);
+      $this->session->set('uid', $user->id());
       // Attempt to reload the user, to see if it still exists. If it existed
       // before, but was deleted in between when we loaded in earlier and now,
       // we don't want to be logged in. Also check to ensure the user is still
       // an SSO-enabled user.
       $user = $userStorage->load($uid);
-      if ($didUserExist && (!$user || !$this->userValidator->isUserValid($user))) {
+      if (!$user || !$this->userValidator->isUserValid($user)) {
         // Since the user is invalid, we should try to log out everywhere.
         // Taken from user_logout() in Drupal core "user" module. We don't
         // invoke hook_user_logout, because we didn't finish logging in.

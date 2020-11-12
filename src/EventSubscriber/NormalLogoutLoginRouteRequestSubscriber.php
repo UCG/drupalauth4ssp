@@ -82,20 +82,18 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
 
     $masterRequest = $this->requestStack->getMasterRequest();
 
-    if (!$account->isAnonymous()) {
-      // We will attempt to redirect to the referrer.
-      $referrer = $masterRequest->server->get('HTTP_REFERER');
-      // Check valididity of referrer URL, and that it is local.
-      if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
-        $returnUrl = $referrer;
-      }
-      else {
-        // Return to home page.
-        $returnUrl = Url::fromRoute('<front>', [], ['absolute' => TRUE]);
-      }
-
-      $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
+    // We will attempt to redirect to the referrer; if it's invalid, we redirect
+    // to the home page.
+    $referrer = $masterRequest->server->get('HTTP_REFERER');
+    // Check valididity of referrer URL, and that it is local.
+    if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
+      $returnUrl = $referrer;
     }
+    else {
+      $returnUrl = Url::fromRoute('<front>', [], ['absolute' => TRUE]);
+    }
+
+    $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
   }
 
   /**
