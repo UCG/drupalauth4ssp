@@ -90,9 +90,6 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function handleNormalLogoutResponse($event) : void {
-    // We don't want any caching.
-    $this->cacheKillSwitch->trigger();
-
     $request = $event->getRequest();
     $masterRequest = $this->requestStack->getMasterRequest();
 
@@ -100,6 +97,10 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
     if ($request->attributes->get('_route') != 'user.logout') {
       return;
     }
+
+    // We don't want any caching.
+    $this->cacheKillSwitch->trigger();
+
     // If this response was generated because of an exception, we don't want to
     // mess with things; get out.
     if ($request->attributes->get('exception')) {

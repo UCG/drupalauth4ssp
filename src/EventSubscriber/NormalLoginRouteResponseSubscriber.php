@@ -119,15 +119,16 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function handleNormalLoginResponse($event) : void {
-    // We don't want any caching.
-    $this->cacheKillSwitch->trigger();
-
     $request = $event->getRequest();
 
     // If we're not using the default login route, get out.
     if ($request->attributes->get('_route') != 'user.login') {
       return;
     }
+
+    // We don't want any caching.
+    $this->cacheKillSwitch->trigger();
+
     // If this response was generated because of an exception, we don't want to
     // mess with things; get out.
     if ($request->attributes->get('exception')) {
