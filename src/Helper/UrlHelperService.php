@@ -95,8 +95,8 @@ class UrlHelperService {
   /**
    * Checks if a URL is both valid and local.
    * 
-   * Checks to see if URL path $url is valid, accessible by the current user,
-   * and if it points to the local Drupal installation.
+   * Checks to see if URL path $url is valid and points to the local Drupal
+   * installation.
    *
    * @param mixed $url
    *   URL to check.

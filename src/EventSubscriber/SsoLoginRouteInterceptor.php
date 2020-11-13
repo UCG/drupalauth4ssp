@@ -97,7 +97,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
     $masterRequest = $this->requestStack->getMasterRequest();
 
     // Otherwise, check to see if we are allowed to perform SSO login.
-    if ($this->userValidator->isAccountValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
+    if ($this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
       // We have an SSO-enabled user! We will have to try to pass on his ID.
       drupalauth4ssp_set_user_cookie($this->account);
       // Now, redirect the user to the 'ReturnTo' URL if possible.

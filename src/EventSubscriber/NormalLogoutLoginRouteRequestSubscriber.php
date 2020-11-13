@@ -74,8 +74,8 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
     // If we're not an unauthenticated user on the logout route, or an
     // authenticated user on the login route, get out, as this subscriber is
     // only designed for those cases.
-    $route = $request->attributes->get('_route');
-    $userIsAnonymous = $account->isAnonymous();
+    $route = $event->getRequest()->attributes->get('_route');
+    $userIsAnonymous = $this->account->isAnonymous();
     if (!(($route == 'user.login' && !$userIsAnonymous) || ($route == 'user.logout' && $userIsAnonymous))) {
       return;
     }
@@ -90,7 +90,7 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
       $returnUrl = $referrer;
     }
     else {
-      $returnUrl = Url::fromRoute('<front>', [], ['absolute' => TRUE]);
+      $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
     }
 
     $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));

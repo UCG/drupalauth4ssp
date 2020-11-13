@@ -6,6 +6,7 @@ namespace Drupal\drupalauth4ssp\EventSubscriber;
 
 use Drupal\Core\Url;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\drupalauth4ssp\Helper\UrlHelpers;
 use Drupal\drupalauth4ssp\SimpleSamlPhpLink;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -117,17 +118,9 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // If we can, we'll redirect to the referrer. This overrides the
-    // default user.logout behavior.
-    $referrer = $masterRequest->server->get('HTTP_REFERER');
-    // Check that the referrer is valid and points to a local URL.
-    if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
-      $returnUrl = $referrer;
-    }
-    else {
-      // Otherwise, just go to the front page.
-      $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
-    }
+    // Redirect to the home page.
+    $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
+    
     // Redirect immediately if we are unauthenticated with simpleSAMLphp.
     if (!$this->sspLink->isAuthenticated()) {
       $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
