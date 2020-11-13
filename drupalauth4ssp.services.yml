@@ -42,3 +42,7 @@ services:
     arguments: ['@drupalauth4ssp.ssp_link']
     tags:
       - { name: page_cache_request_policy }
+  simplesamlphp_auth.login_logout_route_modifier_subscriber:
+    class: Drupal\drupalauth4ssp\EventSubscriber\LoginLogoutRouteModifierSubscriber
+    tags:
+      - { name: event_subscriber }
