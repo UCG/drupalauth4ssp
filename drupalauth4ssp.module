@@ -78,31 +78,33 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
   }
 
   // We are going to generate a nonce which we will add to the cookie set below.
-  // We will also store this nonce in the session, along with an expiry time for
-  // this nonce. This is to prevent "replay attacks," where a user might re-use
-  // the cookie created below to log in multiple times. With what we are doing
-  // here, such attacks become very unlikely -- the nonce (with very high
-  // probability) cannot be re-used, so the attacker would have to guess the
-  // value of the nonce generated below to conduct a replay attack. This would
-  // be very improbable, so replay attacks are effectively mitigated.
-  // A session should always be running right now.
-  assert(session_id());
-  // Keep trying until we get a nonce that isn't already used by this session.
+  // We will also store this nonce in a temporary server-side storage system
+  // that is preserved across requests, so that we can compare the nonce in the
+  // cookie with the nonce in the temporary storage system. This is to prevent
+  // "replay attacks," where a user might re-use the cookie created below to log
+  // in multiple times. With what we are doing here, such attacks become very
+  // unlikely -- the nonce (with very high probability) cannot be re-used, so
+  // the attacker would have to guess the value of the nonce generated below to
+  // conduct a replay attack. This would be very improbable, so replay attacks
+  // are effectively mitigated.
+
+  // Grab the nonce storage object.
+  $nonceStorage = \Drupal::service('drupalauth4ssp.shared_nonce_store')->get('user_auth_info');
+  // Keep trying until we get a nonce that isn't already in use.
   do {
     // Nonce = base-64 encoded version of 32 cryptographically random bytes.
     $nonce = base64_encode(random_bytes(32));
-    $nonceSessionVariableName = 'ssoLoginNonce:' . $nonce;
-  } while (isset($_SESSION[$nonceSessionVariableName]));
-  // Store nonce and nonce expiry time in session -- expire after five minutes.
-  $nonceExpiry = time() + 300;
-  $_SESSION[$nonceSessionVariableName] = $nonceExpiry;
+  } while (!$nonceStorage->setNonce($nonce));
+  // Set nonce cookie to expire at a time corresponding to the expiry of the
+  // nonce stored in the server-side storage.
+  $nonceCookieExpiry = time() + \Drupal::service('service_container')->getParameter('drupalauth4ssp.shared_nonce_store.expire');
 
   // Store the authenticated user's uid in the cookie (create a validation hash
   // to ensure nobody tampers with the uid), along with the nonce generated
   // above, and expire the cookie at the expiry time calculated above.
   // @todo Set via request
   $hash = Crypt::hmacBase64($account->id(), $ssp_config['secretsalt'] . \Drupal::service('private_key')->get());
-  setcookie($ssp_config['cookie_name'], $hash . ':' . $account->id() . ':' . $nonce, $nonceExpiry, $ssp_config['baseurlpath']);
+  setcookie($ssp_config['cookie_name'], $hash . ':' . $account->id() . ':' . $nonce, $nonceCookieExpiry, $ssp_config['baseurlpath']);
 }
 
 /**

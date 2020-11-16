@@ -1,3 +1,6 @@
+parameters:
+  #Nonce store expiry time in seconds.
+  drupalauth4ssp.shared_nonce_store.expire: 300
 services:
   config:
     class: Drupal\drupalauth4ssp\Config
@@ -42,7 +45,10 @@ services:
     arguments: ['@drupalauth4ssp.ssp_link']
     tags:
       - { name: page_cache_request_policy }
-  simplesamlphp_auth.login_logout_route_modifier_subscriber:
+  drupalauth4ssp.login_logout_route_modifier_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\LoginLogoutRouteModifierSubscriber
     tags:
       - { name: event_subscriber }
+  drupalauth4ssp.shared_nonce_store:
+    class: Drupal\drupalauth4ssp\TempStore\SharedNonceStoreFactory
+    arguments: ['@keyvalue.expirable', '@lock', '@request_stack', '%drupalauth4ssp.shared_nonce_store.expire%']
