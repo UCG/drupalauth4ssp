@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Drupal\drupalauth4ssp\Helper;
 
+use Drupal\Component\Utility\Unicode;
+
 /**
  * Helper methods for working with the HTTP protocol (setting headers, etc.).
  * @static
