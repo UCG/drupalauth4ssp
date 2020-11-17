@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionManagerInterface;
+use Drupal\drupalauth4ssp\Helper\HttpHelpers;
 use Drupal\drupalauth4ssp\Helper\UrlHelpers;
 use Drupal\drupalauth4ssp\UserValidatorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;

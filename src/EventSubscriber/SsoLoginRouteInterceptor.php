@@ -6,6 +6,7 @@ namespace Drupal\drupalauth4ssp\EventSubscriber;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\drupalauth4ssp\Helper\HttpHelpers;
 use Drupal\drupalauth4ssp\UserValidatorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;

@@ -7,6 +7,7 @@ namespace Drupal\drupalauth4ssp\EventSubscriber;
 use Drupal\Core\Url;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\drupalauth4ssp\Helper\HttpHelpers;
 use Drupal\drupalauth4ssp\Helper\UrlHelpers;
 use Drupal\drupalauth4ssp\SimpleSamlPhpLink;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
