@@ -127,7 +127,11 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
       $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
     }
     else {
-      // Otherwise, go ahead and initiate single logout.
+      // Otherwise, go ahead and initiate single logout. First, destroy the
+      // curent simpleSAMLphp session.
+      $this->sspLink->invalidateSession();
+      // Then, destroy the user ID cookie.
+      drupalauth4ssp_unset_user_cookie();
       // Build the single logout URL.
       $singleLogoutUrl = UrlHelpers::generateSloUrl($masterRequest->getHost(), $returnUrl);
       // Redirect to the single logout URL
