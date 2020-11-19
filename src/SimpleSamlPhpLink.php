@@ -9,6 +9,7 @@ use Drupal\drupalauth4ssp\Exception\SimpleSamlPhpAttributeException;
 use Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException;
 use SimpleSAML\Auth\Simple;
 use SimpleSAML\Configuration;
+use SimpleSAML\Session;
 use SimpleSAML\Error\CriticalConfigurationError;
 
 /**
@@ -92,6 +93,32 @@ class SimpleSamlPhpLink {
     $this->prepareSimpleSamlStuff();
 
     return $this->isLoggedIn;
+  }
+
+  /**
+   * Invalidates current simpleSAMLphp session by expiring it (if necessary).
+   *
+   * Taken from "drupalauth4ssp.module" in the drupalauth4ssp contrib module.
+   *
+   * @return void
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
+   */
+  public function invalidateSession() {
+    $this->prepareSimpleSamlStuff();
+
+    if (!$this->isLoggedIn) {
+      return;
+    }
+
+    $session = Session::getSessionFromRequest();
+    foreach ($session->getAuthorities() as $authority) {
+      $session->setAuthorityExpire($authority, 1);
+    }
+
+    $this->isLoggedIn = FALSE;
+    $this->attributes = [];
   }
 
   /**
