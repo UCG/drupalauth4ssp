@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Drupal\drupalauth4ssp\EventSubscriber;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\drupalauth4ssp\Helper\HttpHelpers;
@@ -129,9 +130,13 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
     // We don't want any caching.
     $this->cacheKillSwitch->trigger();
 
-    // If this response was generated because of an exception, we don't want to
-    // mess with things; get out.
-    if ($request->attributes->get('exception')) {
+    // If this response was generated because of an exception, we don't
+    // typically want to mess with things. The one exception is the
+    // \Drupal\Core\Form\EnforcedResponseException exception -- this exception
+    // is used for flow control by Drupal's form system, rather than for error
+    // handling, so it is okay to ignore it.
+    $exception = $request->attributes->get('exception');
+    if ($exception && !($exception instanceof EnforcedResponseException)) {
       return;
     }
     // If we're not actually logged in, get out.
@@ -149,20 +154,10 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // Proceed. If we can, we'll redirect to the referrer. This overrides the
-    // default user.logout behavior.
-
     $masterRequest = $this->requestStack->getMasterRequest();
 
-    $referrer = $masterRequest->server->get('HTTP_REFERER');
-    // Check that the referrer is valid and points to a local URL.
-    if ($this->urlHelper->isUrlValidAndLocal($referrer)) {
-      $returnUrl = $referrer;
-    }
-    else {
-      // Otherwise, just go to the front page.
-      $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
-    }
+    // Redirect to the home page.
+    $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
 
     // Initiate SSP authentication. Returns and continues if already logged in.
     $this->sspLink->initiateAuthenticationIfNecessary($returnUrl);
