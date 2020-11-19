@@ -19,14 +19,16 @@ use SimpleSAML\Session;
  * Implements hook_user_login().
  */
 function drupalauth4ssp_user_login($account) {
-  // Only set cookie if we are performing an SP-initiated SSO login.
-  if (_drupalauth4ssp_is_current_route_sso_login_route()) {
+  // Set cookie if we are performing a login via the SSO login route.
+  $isCurrentRouteSsoLoginRoute = _drupalauth4ssp_is_current_route_sso_login_route();
+  $isCurrentRouteNormalLoginRoute = _drupalauth4ssp_is_current_route_normal_login_route();
+  if ($isCurrentRouteSsoLoginRoute) {
     // Double check to ensure user is SSO-enabled.
     if (\Drupal::service('drupalauth4ssp.user_validator')->isUserValid($account)) {
       drupalauth4ssp_set_user_cookie($account);
     }
   }
-  else if (_drupalauth4ssp_is_current_route_normal_login_route()) {
+  if ($isCurrentRouteNormalLoginRoute) {
     // If we just logged in via the normal user.login route, we will go ahead
     // and signal that we should initiate simpleSAMLphp authentication. We don't
     // perform that authentication here, because we don't want to redirect until
