@@ -40,6 +40,13 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
   protected $entityTypeManager;
 
   /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
+
+  /**
    * Helper service to obtain and determine if 'ReturnTo' URL can be used.
    *
    * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService;
@@ -62,14 +69,17 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
    *   User validator.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   Entity type manager.
+   * @param \Symfony\Component\HttpFoundation\RequestStack
+   *   Request stack.
    * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   Helper service to obtain and determine if 'ReturnTo' URL can be used.
    */
-  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $urlHelper) {
+  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $requestStack, $urlHelper) {
     $this->account = $account;
     $this->userValidator = $userValidator;
     $this->urlHelper = $urlHelper;
     $this->entityTypeManager = $entityTypeManager;
+    $this->requestStack = $requestStack;
   }
 
   /**
@@ -103,7 +113,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
       drupalauth4ssp_set_user_cookie($this->account);
       // Now, redirect the user to the 'ReturnTo' URL if possible.
       if ($this->urlHelper->isReturnToUrlValid()) {
-        $event->setResponse(new RedirectResponse($this->returnToUrlManager->getReturnToUrl(), HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
+        $event->setResponse(new RedirectResponse($this->urlHelper->getReturnToUrl(), HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
       }
       else {
         // Return 403.

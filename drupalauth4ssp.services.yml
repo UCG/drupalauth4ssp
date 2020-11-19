@@ -7,7 +7,7 @@ services:
     arguments: ['@config.factory']
   drupalauth4ssp.sso_login_route_interceptor_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\SsoLoginRouteInterceptor
-    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@drupalauth4ssp.url_helper']
+    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@request_stack', '@drupalauth4ssp.url_helper']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.normal_login_response_subscriber:
