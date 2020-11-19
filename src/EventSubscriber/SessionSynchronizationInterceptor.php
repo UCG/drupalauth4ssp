@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionManagerInterface;
+use Drupal\drupalauth4ssp\Constants;
 use Drupal\drupalauth4ssp\Helper\HttpHelpers;
 use Drupal\drupalauth4ssp\Helper\UrlHelpers;
 use Drupal\drupalauth4ssp\UserValidatorInterface;
@@ -127,6 +128,12 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
     }
 
     $request = $event->getRequest();
+    // We don't want ot perform synchronization when we're trying to perform an
+    // SSO login
+    $path = $request->getPathInfo();
+    if ($path == Constants::SSO_LOGIN_PATH) {
+      return;
+    }
 
     // See if we have a simpleSAMLphp session.
     if ($this->sspLink->isAuthenticated()) {
