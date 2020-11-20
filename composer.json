@@ -1,7 +1,7 @@
 {
   "name": "ucg/drupalauth4ssp",
   "description": "This module tightly integrates the SimpleSAMLphp Identity Provider login experience with a Drupal site.",
-  "type": "drupal-module",
+  "type": "drupal-custom-module",
   "authors": [
     {
       "name": "Steve Moitozo",
