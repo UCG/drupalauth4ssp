@@ -83,13 +83,8 @@ class UrlHelperService {
     // This is adapted from the non-forked version of
     // drupalauth4ssp_user_login_submit() in drupalauth4ssp.module.
     $returnToUrl = $this->requestStack->getMasterRequest()->query->get('ReturnTo');
-    // Reject if return to URL is empty.
-    if (empty($returnToUrl)) {
-      return FALSE;
-    }
-    // Check if return to URL is allowed.
-    $returnToAllowedList = $this->configuration->get('returnto_list');
-    return $this->pathMatcher->matchPath($returnToUrl, $returnToAllowedList);
+    // Return 'TRUE' if 'ReturnTo' URL is valid and local.
+    return $this->isUrlValidAndLocal($returnToUrl);
   }
 
   /**

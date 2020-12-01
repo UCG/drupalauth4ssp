@@ -5,6 +5,3 @@ drupalauth4ssp.settings:
     authsource:
       type: string
       label: Authentication source for this IdP
-    returnto_list:
-      type: string
-      label: "Valid 'ReturnTo' URLs"
