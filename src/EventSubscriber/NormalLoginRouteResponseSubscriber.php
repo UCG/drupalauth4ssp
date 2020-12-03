@@ -158,6 +158,7 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
     // of consistency.
     if (!$this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
       $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
+      return;
     }
 
     // Initiate SSP authentication. Returns and continues if already logged in.
