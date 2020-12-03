@@ -149,15 +149,16 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
     if (!isset($shouldInitiateLogin) || !$shouldInitiateLogin) {
       return;
     }
-    // If user isn't SSO-enabled, get out.
-    if (!$this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
-      return;
-    }
+    // Redirect to the home page.
+    $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
 
     $masterRequest = $this->requestStack->getMasterRequest();
 
-    // Redirect to the home page.
-    $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
+    // If user isn't SSO-enabled, initiate redirect to $returnUrl for the sake
+    // of consistency.
+    if (!$this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
+      $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
+    }
 
     // Initiate SSP authentication. Returns and continues if already logged in.
     $this->sspLink->initiateAuthenticationIfNecessary($returnUrl);
