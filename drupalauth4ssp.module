@@ -1,12 +1,13 @@
 <?php
 
 /**
- * @file
- * DrupalAuth For simpleSAMLphp module.
+ * Drupal Authentication for simpleSAMLphp module hook implementations, etc.
  *
  * This module tightly integrates the SimpleSAMLphp Identity Provider login
  * experience with a Drupal site.
  */
+
+declare(strict_types = 1);
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Session\AccountInterface;
