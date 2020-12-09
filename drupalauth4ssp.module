@@ -17,7 +17,20 @@ use SimpleSAML\Configuration;
 use SimpleSAML\Session;
 
 /**
- * Implements hook_user_login().
+ * Implements hook_cron.
+ */
+function drupalauth4ssp_cron() {
+  // Run garbage cleanup for the nonce unique key store service.
+  try {
+    \Drupal::service('drupalauth4ssp.unique_expirable_key_store')->cleanupGarbage();
+  }
+  catch (\Exception $e) {
+    // Swallow exception (@todo: Log).
+  }
+}
+
+/**
+ * Implements hook_user_login.
  */
 function drupalauth4ssp_user_login($account) {
   // Set cookie if we are performing a login via the SSO login route.
@@ -164,7 +177,7 @@ function _drupalauth4ssp_get_simplesamlphp_config() {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter.
  */
 function drupalauth4ssp_form_user_login_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
   // Don't do SSO logic unless the login route is the SP-initiated SSO route.

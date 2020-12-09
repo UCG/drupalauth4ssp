@@ -1,6 +1,6 @@
 parameters:
-  #Nonce store expiry time in seconds.
-  drupalauth4ssp.shared_nonce_store.expire: 300
+  # Nonce store ID.
+  drupalauth4ssp.unique_expirable_key_store.id: 'drupalauth4ssp_unique_expirable_key_store'
 services:
   config:
     class: Drupal\drupalauth4ssp\Config
@@ -49,6 +49,6 @@ services:
     class: Drupal\drupalauth4ssp\EventSubscriber\LoginLogoutRouteModifierSubscriber
     tags:
       - { name: event_subscriber }
-  drupalauth4ssp.shared_nonce_store:
-    class: Drupal\drupalauth4ssp\TempStore\SharedNonceStoreFactory
-    arguments: ['@keyvalue.expirable', '@lock', '@request_stack', '%drupalauth4ssp.shared_nonce_store.expire%']
+  drupalauth4ssp.unique_expirable_key_store:
+    class: Drupal\drupalauth4ssp\UniqueExpirableKeyStore
+    arguments: ['%drupalauth4ssp_unique_expirable_key_store%', '@database']
