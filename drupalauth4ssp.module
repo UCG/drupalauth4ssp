@@ -12,6 +12,7 @@ declare(strict_types = 1);
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\drupalauth4ssp\GarbageCollectableInterface;
 use Drupal\user\Entity\User;
 use SimpleSAML\Configuration;
 use SimpleSAML\Session;
@@ -20,12 +21,17 @@ use SimpleSAML\Session;
  * Implements hook_cron.
  */
 function drupalauth4ssp_cron() {
-  // Run garbage cleanup for the nonce unique key store service.
-  try {
-    \Drupal::service('drupalauth4ssp.unique_expirable_key_store')->cleanupGarbage();
-  }
-  catch (\Exception $e) {
-    // Swallow exception (@todo: Log).
+  // Run garbage clean up for the two unique key store services.
+  $servicesToCleanup = ['drupalauth4ssp.nonce_collision_store', 'drupalauth4ssp.used_nonce_store'];
+  foreach ($servicesToCleanup as $serviceName) {
+    $service = \Drupal::service($serviceName);
+    assert($service instanceof GarbageCollectableInterface);
+    try {
+      $service->cleanupGarbage();
+    }
+    catch (\Exception $e) {
+      // Swallow exception (@todo: Log).
+    }
   }
 }
 
@@ -93,34 +99,75 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
     return;
   }
 
-  // We are going to generate a nonce which we will add to the cookie set below.
-  // We will also store this nonce in a temporary server-side storage system
-  // that is preserved across requests, so that we can compare the nonce in the
-  // cookie with the nonce in the temporary storage system. This is to prevent
-  // "replay attacks," where a user might re-use the cookie created below to log
-  // in multiple times. With what we are doing here, such attacks become very
-  // unlikely -- the nonce (with very high probability) cannot be re-used, so
-  // the attacker would have to guess the value of the nonce generated below to
-  // conduct a replay attack. This would be very improbable, so replay attacks
-  // are effectively mitigated.
+  // In order to pass the user ID to simpleSAMLphp, we create a cookie in the
+  // following format:
+  // [cookie message]:[HMAC of cookie message]
+  // where:
+  // [cookie message] = [user ID].[expiry].[nonce]
+  // The HMAC (hashed message authentication code) is a shared-key digital
+  // signature that verifies the authenticity of the message; the receiver
+  // of the cookie can check to sure the HMAC was generated using the cookie
+  // message and a particular key (the key is generated from the Drupal
+  // 'private_key' service and the simpleSAMLphp secret salt).
+  // The cookie message contains the user ID (as you would expect), as well as
+  // an expiry (Unix) timestamp and a nonce, which require some explanation.
+  // These (last two) components are there to prevent replay attacks, when
+  // someone re-uses the same cookie twice to log in without re-authentication.
+  // The expiry time ensures that, first of all, the cookie can only be used for
+  // a short time. The nonce, a key which is guaranteed not to be the same as
+  // any key generated thereafter but before the 'expiry' time, provides the
+  // replay attack permission -- once this nonce is used, it is added to a
+  // server-side cache which prevents re-use until (possibly) the expiry time
+  // (after which the cookie is useless anyway).
+  //
+  // We store nonces in two locations on the server. The first nonce store,
+  // represented by the 'drupalauth4ssp.nonce_collision_store' service, is used
+  // to ensure we don't accidentally generate a nonce which has already been
+  // generated in the duration corresponding to the expiry times we set. Nonces
+  // in this storage mechanism are set to expire at a time equal to the expiry
+  // time stored in the second nonce store for this nonce (described below), and
+  // are added at the time we generate the cookie (below).
+  // The second nonce store, represented by the
+  // 'drupalauth4ssp.used_nonce_store' service, is used to ensure we don't reuse
+  // a non-expired nonce. Every time a nonce is used, it is added to this store,
+  // and set to expire at the time of the expiry of the nonce (plus a fudge
+  // factor, for a safety measure). On the simpleSAMLphp side, we check to
+  // ensure a nonce in a cookie isn't in this store before we allow it to be
+  // used (in addition to checking to ensure that the cookie's expiry time
+  // hasn't been reached).
 
   // Grab the nonce storage object.
-  $nonceStorage = \Drupal::service('drupalauth4ssp.shared_nonce_store')->get('user_auth_info');
-  // Keep trying until we get a nonce that isn't already in use.
-  do {
-    // Nonce = base-64 encoded version of 32 cryptographically random bytes.
-    $nonce = base64_encode(random_bytes(32));
-  } while (!$nonceStorage->setNonce($nonce));
-  // Set nonce cookie to expire at a time corresponding to the expiry of the
-  // nonce stored in the server-side storage.
-  $nonceCookieExpiry = time() + \Drupal::service('service_container')->getParameter('drupalauth4ssp.shared_nonce_store.expire');
+  $nonceCollisionStore = \Drupal::service('drupalauth4ssp.nonce_collision_store');
 
-  // Store the authenticated user's uid in the cookie (create a validation hash
-  // to ensure nobody tampers with the uid), along with the nonce generated
-  // above, and expire the cookie at the expiry time calculated above.
-  // @todo Set via request
-  $hash = Crypt::hmacBase64($account->id(), $ssp_config['secretsalt'] . \Drupal::service('private_key')->get());
-  setcookie($ssp_config['cookie_name'], $hash . ':' . $account->id() . ':' . $nonce, $nonceCookieExpiry, $ssp_config['baseurlpath']);
+  $serviceContainer = \Drupal::getContainer();
+  // We measure the nonce expiry from the request time.
+  $expiry = (int) $_SERVER['REQUEST_TIME'] + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime');
+  // Collision store expiry = $expiry + buffer time.
+  $collisionStoreExpiry = $expiry + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime_delta');
+  // Try to generate a valid nonce. Give up after 1,000 attempts.
+  $i = 0;
+  do {
+    // Nonce = base-64 encoded version of 16 cryptographically random bytes.
+    $nonce = base64_encode(random_bytes(16));
+    $wasNonceValid = $nonceCollisionStore->tryPutKey($nonce, $collisionStoreExpiry);
+    $i++;
+  } while (!$wasNonceValid && $i < 1000);
+  if (!$wasNonceValid) {
+    throw new \RuntimeException('Could not generate sufficiently unique user ID cookie nonce.');
+  }
+
+  // Now, store the cookie as described above. First, generate the key used to
+  // sign the cookie's message.
+  $key = $ssp_config['secretsalt'] . \Drupal::service('private_key')->get();
+  // Next, generate the cookie's message ("[cookie message]" described above).
+  $message = $account->id() . ':' . $expiry . ':' . $nonce;
+  // Generate the HMAC (signature).
+  $hmac = Crypt::hmacBase64($message, $key);
+  // Assemble the full cookie data.
+  $cookieData = $message . ':' . $hmac;
+
+  // Set the cookie (@todo: set w/ request).
+  setcookie($ssp_config['cookie_name'], $cookieData, $expiry, $ssp_config['baseurlpath']);
 }
 
 /**
