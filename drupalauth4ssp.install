@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * Drupal Authentication for simpleSAMLphp module install hook implementations.
+ */
+
+declare(strict_types = 1);
+
+use Drupal\drupalauth4ssp\UniqueExpirableKeyStore;
+
+/**
+ * Implements hook_schema.
+ */
+function hook_schema() : array {
+  // Return the schema for the unique expirable key store.
+  return [UniqueExpirableKeyStore::DEFAULT_TABLE_NAME => UniqueExpirableKeyStore::getSchema()];
+}
