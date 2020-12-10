@@ -220,8 +220,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
       }
       else if ($rowCount == 1) {
         // Check to see if the key has expired.
-        $expiry = (int) $result->fetchAssoc()['expiry'];
-        if ($expiry < $serverRequestTime) {
+        $existingRecordExpiry = (int) $result->fetchAssoc()['expiry'];
+        if ($existingRecordExpiry < $serverRequestTime) {
           // Go ahead and update record with new expiry time.
           $this->databaseConnection->update($tableName)
             ->fields(['expiry' => $expiryTime])
