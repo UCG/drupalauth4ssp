@@ -1,6 +1,10 @@
 parameters:
-  # Nonce store ID.
-  drupalauth4ssp.unique_expirable_key_store.id: 'drupalauth4ssp_unique_expirable_key_store'
+  drupalauth4ssp.nonce_collision_store.id: 'drupalauth4ssp.nonce_collision_store'
+  drupalauth4ssp.used_nonce_store.id: 'drupalauth4ssp.used_nonce_store'
+  # Lifetime of nonces (see drupalauth4ssp_set_user_cookie()).
+  drupalauth4ssp.nonce_lifetime: 300
+  # Fudge amount for lifetime of nonces (see drupalauth4ssp_set_user_cookie()).
+  drupalauth4ssp.nonce_lifetime_delta: 20
 services:
   config:
     class: Drupal\drupalauth4ssp\Config
@@ -49,6 +53,9 @@ services:
     class: Drupal\drupalauth4ssp\EventSubscriber\LoginLogoutRouteModifierSubscriber
     tags:
       - { name: event_subscriber }
-  drupalauth4ssp.unique_expirable_key_store:
+  drupalauth4ssp.nonce_collision_store:
     class: Drupal\drupalauth4ssp\UniqueExpirableKeyStore
-    arguments: ['%drupalauth4ssp_unique_expirable_key_store%', '@database']
+    arguments: ['%drupalauth4ssp.nonce_collision_store.id%', '@database']
+  drupalauth4ssp.used_nonce_store:
+    class: Drupal\drupalauth4ssp\UniqueExpirableKeyStore
+    arguments: ['%drupalauth4ssp.used_nonce_store.id%', '@database']
