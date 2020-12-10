@@ -28,7 +28,7 @@ use Drupal\Component\Utility\Unicode;
  * class performs checks to ensure these conditions are met, but it ultimately
  * the responsibility of the user of this module to verify these conditions.
  */
-class UniqueExpirableKeyStore {
+class UniqueExpirableKeyStore implements GarbageCollectableInterface {
 
   /**
    * Default name of table underlying this key store.
@@ -38,7 +38,7 @@ class UniqueExpirableKeyStore {
   /**
    * Maximum length of keys.
    */
-  public const MAX_KEY_LENGTH = 100;
+  public const MAX_KEY_LENGTH = 50;
 
   /**
    * Maximum length of store IDs.
@@ -479,7 +479,7 @@ class UniqueExpirableKeyStore {
         'storeId' => [
           'description' => 'ID of expirable key value store. There can be multiple IDs in this table.',
           'type' => 'varchar',
-          'length' => 100,
+          'length' => static::MAX_STORE_ID_LENGTH,
           'not null' => TRUE,
           'default' => 'store',
           'binary',
@@ -487,7 +487,7 @@ class UniqueExpirableKeyStore {
         'key' => [
           'description' => 'Key being stored. Must be unique for a given store ID.',
           'type' => 'varchar',
-          'length' => 100,
+          'length' => static::MAX_KEY_LENGTH,
           'not null' => TRUE,
           'default' => 'key',
           'binary',
