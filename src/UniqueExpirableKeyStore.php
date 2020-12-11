@@ -11,7 +11,7 @@ use Drupal\Component\Utility\Unicode;
  *
  * Allows one to store in request-persistent storage a set of keys, all of which
  * are unique within for a given store ID. Optionally, each key may have an
- * expiry time. This key store  ensures that, if some combination of the
+ * expiry time. This key store ensures that, if some combination of the
  * tryPutKey($key, $expiry), tryTakeKey($key), and cleanupGarbage() operations
  * are executed by multiple requests with the same $key (even if these requests
  * execute these methods nearly simultaneously), at any point in time the return
@@ -22,7 +22,7 @@ use Drupal\Component\Utility\Unicode;
  * store to ensure it is not used again, and while storing this nonce we wish to
  * simultaneously ensure no one else has used (stored) this nonce.
  *
- * In order to make the guaranees given above, it is necessary that the MySQL
+ * In order to make the guarantees given above, it is necessary that the MySQL
  * database be used as the main Drupal database, and that the InnoDB storage
  * engine be used for the key store tables associated with this key store. This
  * class performs checks to ensure these conditions are met, but it ultimately
@@ -116,6 +116,9 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
   /**
    * Gets rid of expired keys for the store ID assocated with this object.
    *
+   * To determine if a key has expired, the expiry time is compared with
+   * $_SERVER['REQUEST_TIME'], if it is available, or otherwise with time().
+   *
    * @return void
    * @throws \RuntimeException
    *   Thrown if type of database associated with $databaseConnection not set to
@@ -132,12 +135,12 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     // Check the validity of the database and storage engine types.
     $this->checkDatabaseAndStorageEngine();
 
-    $serverRequestTime = (int) $_SERVER['REQUEST_TIME'];
+    $currentTime = static::getCurrentTime();
     $this->executeDatabaseTransaction(function() {
       // Delete expired keys.
       $this->databaseConnection->delete($this->tableName)
         ->condition('storeId', $storeId, '=')
-        ->condition('expiry', $serverRequestTime, '<')
+        ->condition('expiry', $currentTime, '<')
         ->execute();
     });
   }
@@ -155,7 +158,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * the expiry time $expiryTime.
    *
    * To determine if a key has expired, $expiryTime is compared with
-   * $_SERVER['REQUEST_TIME'].
+   * $_SERVER['REQUEST_TIME'], if it is available, or otherwise with time().
    *
    * @param string $key
    *   Key to attempt to insert (max size = MAX_KEY_LENGTH)
@@ -171,7 +174,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * @throws \InvalidArgumentException
    *   $key is more than MAX_KEY_LENGTH characters in length.
    * @throws \InvalidArgumentException
-   *   $expiryTime is less than $_SERVER['REQUEST_TIME'].
+   *   $expiryTime is less than $_SERVER['REQUEST_TIME'], if it is available,
+   *   or otherwise if it is less than time().
    * @throws \RuntimeException
    *   Thrown if type of database associated with $databaseConnection not set to
    *   MySQL.
@@ -195,9 +199,9 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     if (mb_strlen($key) > static::MAX_KEY_LENGTH) {
       throw new \InvalidArgumentException(sprintf('$key has more than %d characters.', static::MAX_KEY_LENGTH));
     }
-    $serverRequestTime = (int) $_SERVER['REQUEST_TIME'];
-    if ($expiryTime < $serverRequestTime) {
-      throw new \InvalidArgumentException('$expiryTime is earlier than the server request time.');
+    $currentTime = static::getCurrentTime();
+    if ($expiryTime < $currentTime) {
+      throw new \InvalidArgumentException('$expiryTime is earlier than the request and/or current time.');
     }
     // Check the validity of the database and storage engine types.
     $this->checkDatabaseAndStorageEngine();
@@ -232,7 +236,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
 
         // We're good -- exactly one record was returned.
         // Check to see if the key has expired.
-        if ((int) $existingRecordExpiry < $serverRequestTime) {
+        if ((int) $existingRecordExpiry < $currentTime) {
           // Go ahead and update record with new expiry time.
           $this->databaseConnection->update($this->tableName)
             ->fields(['expiry' => $expiryTime])
@@ -265,8 +269,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * 3) If the key $key does not exist for the current store ID, this method
    * returns FALSE.
    *
-   * To determine if a key has expired, the expiry time is compared with
-   * $_SERVER['REQUEST_TIME'].
+   * To determine if a key has expired, $expiryTime is compared with
+   * $_SERVER['REQUEST_TIME'], if it is available, or otherwise with time().
    *
    * @param string $key
    *   Key to attempt to take (max size = MAX_KEY_LENGTH)
@@ -326,7 +330,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
 
         // We're good -- exactly one record was returned.
         // Check to see if the key has expired.
-        if ((int) $existingRecordExpiry < (int) $_SERVER['REQUEST_TIME']) {
+        if ((int) $existingRecordExpiry < static::getCurrentTime()) {
           // Key has expired -- we won't delete it.
           $couldDeleteKeyRecord = FALSE;
         }
@@ -523,6 +527,24 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
       ],
       'primary key' => ['storeId', 'key'],
     ];
+  }
+
+  /**
+   * Gets the current time as an integer (Unix timestamp).
+   *
+   * Uses $_SERVER['REQUEST_TIME'] if available, or otherwise time().
+   *
+   * @return int
+   *   Unix timestamp.
+   */
+  protected static function getCurrentTime() : int {
+    $requestTime = $_SERVER['REQUEST_TIME'];
+    if (empty($requestTime)) {
+      return (int) time();
+    }
+    else {
+      return (int) $requestTime;
+    }
   }
 
 }

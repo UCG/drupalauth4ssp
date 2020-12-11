@@ -140,8 +140,15 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
   $nonceCollisionStore = \Drupal::service('drupalauth4ssp.nonce_collision_store');
 
   $serviceContainer = \Drupal::getContainer();
-  // We measure the nonce expiry from the request time.
-  $expiry = (int) $_SERVER['REQUEST_TIME'] + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime');
+  // We measure the nonce expiry from the request time, if it is available --
+  // otherwise we use the current time.
+  if (empty($_SERVER['REQUEST_TIME'])) {
+    $currentTime = (int) time();
+  }
+  else {
+    $currentTime = (int) $_SERVER['REQUEST_TIME'];
+  }
+  $expiry = $currentTime + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime');
   // Collision store expiry = $expiry + buffer time.
   $collisionStoreExpiry = $expiry + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime_delta');
   // Try to generate a valid nonce. Give up after 1,000 attempts.
