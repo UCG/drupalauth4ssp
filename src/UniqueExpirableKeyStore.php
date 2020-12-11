@@ -139,7 +139,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     $this->executeDatabaseTransaction(function() {
       // Delete expired keys.
       $this->databaseConnection->delete($this->tableName)
-        ->condition('storeId', $storeId, '=')
+        ->condition('storeId', $this->storeId, '=')
         ->condition('expiry', $currentTime, '<')
         ->execute();
     });
