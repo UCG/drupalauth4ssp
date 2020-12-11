@@ -11,7 +11,16 @@ use Drupal\drupalauth4ssp\UniqueExpirableKeyStore;
 /**
  * Implements hook_schema.
  */
-function hook_schema() : array {
+function drupalauth4ssp_schema() : array {
   // Return the schema for the unique expirable key store.
   return [UniqueExpirableKeyStore::DEFAULT_TABLE_NAME => UniqueExpirableKeyStore::getSchema()];
+}
+
+/**
+ * Implements hook_update_N.
+ */
+function drupalauth4ssp_update_8001() : void {
+  // Build unique expirable key store table.
+  $schema = \Drupal::database()->schema();
+  $schema->createTable(UniqueExpirableKeyStore::DEFAULT_TABLE_NAME, UniqueExpirableKeyStore::getSchema());
 }
