@@ -103,7 +103,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     if ($tableName === '') {
       throw new \InvalidArgumentException('$tableName is empty.');
     }
-    if (mb_strlen($key) > static::MAX_STORE_ID_LENGTH) {
+    if (mb_strlen($storeId) > static::MAX_STORE_ID_LENGTH) {
       throw new \InvalidArgumentException(sprintf('$storeId has more than %d characters.', static::MAX_STORE_ID_LENGTH));
     }
     $this->storeId = $storeId;
@@ -135,9 +135,10 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     $serverRequestTime = (int) $_SERVER['REQUEST_TIME'];
     $this->executeDatabaseTransaction(function() {
       // Delete expired keys.
-      $this->databaseConnection->delete($tableName)
+      $this->databaseConnection->delete($this->tableName)
         ->condition('storeId', $storeId, '=')
-        ->condition('expiry', $serverRequestTime, '<');
+        ->condition('expiry', $serverRequestTime, '<')
+        ->execute();
     });
   }
 
@@ -204,29 +205,40 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     $couldInsertOrUpdateKeyRecord = FALSE;
     $this->executeDatabaseTransaction(function() use($key, $expiryTime, &$couldInsertOrUpdateKeyRecord) {
       // Go ahead and lock and select the row/index corresponding to this key.
-      $result = $this->databaseConnection->query('SELECT * FROM {' .
+      $result = $this->databaseConnection->query('SELECT expiry FROM {' .
         $this->databaseConnection->escapeTable($this->tableName) .
-        '} WHERE storeId = :storeId AND key = :key FOR UPDATE',
+        '} WHERE storeId = :storeId AND `key` = :key FOR UPDATE',
         [':storeId' => $this->storeId, ':key' => $key]);
-      $rowCount = $result->rowCount();
-      if ($rowCount == 0) {
+
+      // Try to fetch the first expiry timestamp.
+      $existingRecordExpiry = $result->fetchField(0);
+      if ($existingRecordExpiry === FALSE) {
         // No rows -- go ahead and insert the key.
-        $this->databaseConnection->insert($tableName)->fields([
+        $this->databaseConnection->insert($this->tableName)->fields([
           'storeId' => $this->storeId,
           'key' => $key,
           'expiry' => $expiryTime,
-        ]);
+        ])->execute();
         $couldInsertOrUpdateKeyRecord = TRUE;
       }
-      else if ($rowCount == 1) {
+      else {
+        // Try to grab the expiry field from the *next* record.
+        $secondRecordExpiry = $result->fetchField(0);
+        if ($secondRecordExpiry !== FALSE) {
+          // This shouldn't happen -- we should only get one or zero records
+          // returned.
+          throw new \RuntimeException('Database table corrupt - invalid number of records returned from database for a given key and store ID.');
+        }
+
+        // We're good -- exactly one record was returned.
         // Check to see if the key has expired.
-        $existingRecordExpiry = (int) $result->fetchAssoc()['expiry'];
-        if ($existingRecordExpiry < $serverRequestTime) {
+        if ((int) $existingRecordExpiry < $serverRequestTime) {
           // Go ahead and update record with new expiry time.
-          $this->databaseConnection->update($tableName)
+          $this->databaseConnection->update($this->tableName)
             ->fields(['expiry' => $expiryTime])
             ->condition('key', $key, '=')
-            ->condition('storeId', $storeId, '=');
+            ->condition('storeId', $storeId, '=')
+            ->execute();
           $couldInsertOrUpdateKeyRecord = TRUE;
         }
         else {
@@ -234,9 +246,6 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
           // with.
           $couldInsertOrUpdateKeyRecord = FALSE;
         }
-      }
-      else {
-        throw new \RuntimeException('Database table corrupt - invalid number of records returned from database for a given key and store ID.');
       }
     });
 
@@ -293,37 +302,45 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     $couldDeleteKeyRecord = FALSE;
     $this->executeDatabaseTransaction(function() use($key, &$couldDeleteKeyRecord) {
       // Go ahead and lock and select the row/index corresponding to this key.
-      $result = $this->databaseConnection->query('SELECT * FROM {' .
+      $result = $this->databaseConnection->query('SELECT expiry FROM {' .
         $this->databaseConnection->escapeTable($this->tableName) .
-        '} WHERE storeId = :storeId AND key = :key FOR UPDATE',
+        '} WHERE storeId = :storeId AND `key` = :key FOR UPDATE',
         [':storeId' => $this->storeId, ':key' => $key]);
       // Note that the index for the store ID/key pair will be locked *even if
       // no rows are returned from the SELECT query above*.
-      $rowCount = $result->rowCount();
-      if ($rowCount == 0) {
+
+      // Try to fetch the first expiry timestamp.
+      $existingRecordExpiry = $result->fetchField(0);
+      if ($expiry === FALSE) {
         // No rows -- can't delete anything.
         $couldDeleteKeyRecord = FALSE;
       }
-      else if ($rowCount == 1) {
+      else {
+        // Try to grab the expiry field from the *next* record.
+        $secondRecordExpiry = $result->fetchField(0);
+        if ($secondRecordExpiry !== FALSE) {
+          // This shouldn't happen -- we should only get one or zero records
+          // returned.
+          throw new \RuntimeException('Database table corrupt - invalid number of records returned from database for a given key and store ID.');
+        }
+
+        // We're good -- exactly one record was returned.
         // Check to see if the key has expired.
-        $expiry = (int) $result->fetchAssoc()['expiry'];
-        if ($expiry < $serverRequestTime) {
+        if ((int) $existingRecordExpiry < (int) $_SERVER['REQUEST_TIME']) {
           // Key has expired -- we won't delete it.
-          $couldDeleteKeyRecord = TRUE;
+          $couldDeleteKeyRecord = FALSE;
         }
         else {
           // Key is active. Go ahead and delete it.
           $result = $this->databaseConnection->delete($this->tableName)
             ->condition('key', $key, '=')
-            ->condition('storeId', $this->storeId, '=');
+            ->condition('storeId', $this->storeId, '=')
+            ->execute();
           if ($result !== 1) {
             throw new \RuntimeException('Could not delete key / store ID combination.');
           }
           $couldDeleteKeyRecord = TRUE;
         }
-      }
-      else {
-        throw new \RuntimeException('Database table corrupt - invalid number of records returned from database for a given key and store ID.');
       }
     });
 
@@ -365,15 +382,19 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
       throw new \RuntimeException(sprintf("Could not verify that storage type for table '%s' was set to InnoDB.", $this->tableName), 0, $e);
     }
 
-    // Ensure we received exactly one table status record.
-    if ($result->rowCount() > 1) {
-      throw new \RuntimeException(sprintf("Database misconfiguration -- there appear to be multiple unique expirable key value store tables with name '%s'.", $this-tableName));
-    }
-    if ($result->rowCount() <= 0) {
+    // Try to obtain returned record.
+    $record = $result->fetchAssoc();
+    // If there was no record...
+    if (!$record) {
       throw new \RuntimeException(sprintf("No expirable key value store table found with name '%s'.", $this->tableName));
     }
+    // Make sure there's not another record (should be only one table!).
+    $nextRecord = $result->fetchAssoc();
+    if ($nextRecord) {
+      throw new \RuntimeException(sprintf("Database misconfiguration -- there appear to be multiple unique expirable key value store tables with name '%s'.", $this-tableName));
+    }
+
     // Check the 'Engine' field of the returned record.
-    $record = $result->fetchAssoc();
     if (empty($record['Engine']) || Unicode::strcasecmp($record['Engine'], 'InnoDB') !== 0) {
       throw new \RuntimeException(sprintf("Could not verify that storage type for table '%s' was set to InnoDB.", $this->tableName), 0, $e);
     }
@@ -460,7 +481,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     // Set the transaction level to the highest possible for an added safety
     // measure (though the exclusive locks we acquire in this class should be
     // enough to guarantee sufficient transaction isolation).
-    $this->connection->query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+    $this->databaseConnection->query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
   }
 
   /**
