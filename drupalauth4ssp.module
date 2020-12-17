@@ -13,6 +13,7 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\drupalauth4ssp\GarbageCollectableInterface;
+use Drupal\drupalauth4ssp\Helper\TimeHelpers;
 use Drupal\user\Entity\User;
 use SimpleSAML\Configuration;
 use SimpleSAML\Session;
@@ -142,12 +143,7 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
   $serviceContainer = \Drupal::getContainer();
   // We measure the nonce expiry from the request time, if it is available --
   // otherwise we use the current time.
-  if (empty($_SERVER['REQUEST_TIME'])) {
-    $currentTime = (int) time();
-  }
-  else {
-    $currentTime = (int) $_SERVER['REQUEST_TIME'];
-  }
+  $currentTime = TimeHelpers::getCurrentTime();
   $expiry = $currentTime + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime');
   // Collision store expiry = $expiry + buffer time.
   $collisionStoreExpiry = $expiry + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime_delta');

@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Drupal\drupalauth4ssp;
 
 use Drupal\Component\Utility\Unicode;
+use Drupal\drupalauth4ssp\Helper\TimeHelpers;
 
 /**
  * Represents a persistent storage system for unique expirable keys.
@@ -95,6 +96,10 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * @throws \RuntimeException
    *   Thrown if it could not be verified that the table represented by
    *   $tableName uses InnoDB as its storage engine.
+   * @throws \RuntimeException
+   *   The size of a PHP integer on this platform is not at least four bytes
+   *   (such a size is needed to ensure Unix timestamps can be accurately
+   *   represented).
    */
   public function __construct(string $storeId, $databaseConnection, string $tableName = self::DEFAULT_TABLE_NAME) {
     if ($storeId === '') {
@@ -106,6 +111,10 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     if (mb_strlen($storeId) > static::MAX_STORE_ID_LENGTH) {
       throw new \InvalidArgumentException(sprintf('$storeId has more than %d characters.', static::MAX_STORE_ID_LENGTH));
     }
+    if (PHP_INT_SIZE < 4) {
+      throw new \RuntimeException('The size of a PHP integer on this platform is less than four bytes.');
+    }
+
     $this->storeId = $storeId;
     $this->databaseConnection = $databaseConnection;
     $this->tableName = $tableName;
@@ -136,7 +145,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     $this->checkDatabaseAndStorageEngine();
 
     $this->executeDatabaseTransaction(function() {
-      $currentTime = static::getCurrentTime();
+      $currentTime = TimeHelpers::getCurrentTime();
       // Delete expired keys.
       $this->databaseConnection->delete($this->tableName)
         ->condition('storeId', $this->storeId, '=')
@@ -199,7 +208,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     if (mb_strlen($key) > static::MAX_KEY_LENGTH) {
       throw new \InvalidArgumentException(sprintf('$key has more than %d characters.', static::MAX_KEY_LENGTH));
     }
-    $currentTime = static::getCurrentTime();
+    $currentTime = TimeHelpers::getCurrentTime();
     if ($expiryTime < $currentTime) {
       throw new \InvalidArgumentException('$expiryTime is earlier than the request and/or current time.');
     }
@@ -330,7 +339,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
 
         // We're good -- exactly one record was returned.
         // Check to see if the key has expired.
-        if ((int) $existingRecordExpiry < static::getCurrentTime()) {
+        if ((int) $existingRecordExpiry < TimeHelpers::getCurrentTime()) {
           // Key has expired -- we won't delete it.
           $couldDeleteKeyRecord = FALSE;
         }
@@ -527,24 +536,6 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
       ],
       'primary key' => ['storeId', 'key'],
     ];
-  }
-
-  /**
-   * Gets the current time as an integer (Unix timestamp).
-   *
-   * Uses $_SERVER['REQUEST_TIME'] if available, or otherwise time().
-   *
-   * @return int
-   *   Unix timestamp.
-   */
-  protected static function getCurrentTime() : int {
-    $requestTime = $_SERVER['REQUEST_TIME'];
-    if (empty($requestTime)) {
-      return (int) time();
-    }
-    else {
-      return (int) $requestTime;
-    }
   }
 
 }
