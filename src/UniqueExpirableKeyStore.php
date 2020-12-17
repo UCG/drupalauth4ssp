@@ -135,8 +135,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     // Check the validity of the database and storage engine types.
     $this->checkDatabaseAndStorageEngine();
 
-    $currentTime = static::getCurrentTime();
     $this->executeDatabaseTransaction(function() {
+      $currentTime = static::getCurrentTime();
       // Delete expired keys.
       $this->databaseConnection->delete($this->tableName)
         ->condition('storeId', $this->storeId, '=')
