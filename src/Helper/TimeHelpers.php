@@ -34,11 +34,11 @@ final class TimeHelpers {
 
     // Use the request time, if available -- otherwise use the current time.
     if (empty($_SERVER['REQUEST_TIME']) || !is_numeric($_SERVER['REQUEST_TIME'])) {
-    $currentTime = (int) time();
-  }
-  else {
-    $currentTime = (int) $_SERVER['REQUEST_TIME'];
-  }
+      return (int) time();
+    }
+    else {
+      return (int) $_SERVER['REQUEST_TIME'];
+    }
   }
 
 }
