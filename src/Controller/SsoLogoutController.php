@@ -53,6 +53,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
     $this->urlHelper = $urlHelper;
     $this->requestStack = $requestStack;
   }
+
   /**
    * Contains controller logic.
    *
@@ -67,6 +68,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
     }
     // Clear the drupalauth4ssp cookie.
     drupalauth4ssp_unset_user_cookie();
+
     // Attempt to redirect, if possible (if the return URL parameter isn't
     // empty and is allowed) to the return URL query string parameter.
     // Otherwise, redirect to the home page.

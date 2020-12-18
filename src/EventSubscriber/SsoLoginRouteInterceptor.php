@@ -77,9 +77,9 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
   public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $requestStack, $urlHelper) {
     $this->account = $account;
     $this->userValidator = $userValidator;
-    $this->urlHelper = $urlHelper;
     $this->entityTypeManager = $entityTypeManager;
     $this->requestStack = $requestStack;
+    $this->urlHelper = $urlHelper;
   }
 
   /**

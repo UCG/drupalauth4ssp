@@ -10,6 +10,7 @@
 declare(strict_types = 1);
 
 use Drupal\Component\Utility\Crypt;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\drupalauth4ssp\GarbageCollectableInterface;
@@ -22,6 +23,7 @@ use SimpleSAML\Configuration;
 function drupalauth4ssp_cron() {
   // Run garbage clean up for the two unique key store services.
   $servicesToCleanup = ['drupalauth4ssp.nonce_collision_store', 'drupalauth4ssp.used_nonce_store'];
+
   foreach ($servicesToCleanup as $serviceName) {
     $service = \Drupal::service($serviceName);
     assert($service instanceof GarbageCollectableInterface);
@@ -39,15 +41,13 @@ function drupalauth4ssp_cron() {
  */
 function drupalauth4ssp_user_login($account) {
   // Set cookie if we are performing a login via the SSO login route.
-  $isCurrentRouteSsoLoginRoute = _drupalauth4ssp_is_current_route_sso_login_route();
-  $isCurrentRouteNormalLoginRoute = _drupalauth4ssp_is_current_route_normal_login_route();
-  if ($isCurrentRouteSsoLoginRoute) {
+  if (_drupalauth4ssp_is_current_route_sso_login_route()) {
     // Double check to ensure user is SSO-enabled.
     if (\Drupal::service('drupalauth4ssp.user_validator')->isUserValid($account)) {
       drupalauth4ssp_set_user_cookie($account);
     }
   }
-  if ($isCurrentRouteNormalLoginRoute) {
+  else if (_drupalauth4ssp_is_current_route_normal_login_route()) {
     // If we just logged in via the normal user.login route, we will go ahead
     // and signal that we should initiate simpleSAMLphp authentication. We don't
     // perform that authentication here, because we don't want to redirect until
@@ -61,7 +61,6 @@ function drupalauth4ssp_user_login($account) {
 
 /**
  * Implements hook_user_logout.
- *
  */
 function drupalauth4ssp_user_logout($account) {
   if (_drupalauth4ssp_is_current_route_normal_logout_route()) {
@@ -145,6 +144,7 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
   $expiry = $currentTime + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime');
   // Collision store expiry = $expiry + buffer time.
   $collisionStoreExpiry = $expiry + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime_delta');
+
   // Try to generate a valid nonce. Give up after 1,000 attempts.
   $i = 0;
   do {
@@ -227,7 +227,7 @@ function _drupalauth4ssp_get_simplesamlphp_config() {
 /**
  * Implements hook_form_FORM_ID_alter.
  */
-function drupalauth4ssp_form_user_login_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $form_state) {
   // Don't do SSO logic unless the login route is the SP-initiated SSO route.
   if (_drupalauth4ssp_is_current_route_sso_login_route()) {
     $form['#submit'][] = 'drupalauth4ssp_user_login_submit';
@@ -237,7 +237,7 @@ function drupalauth4ssp_form_user_login_form_alter(&$form, \Drupal\Core\Form\For
 /**
  * Sets redirect upon successful login.
  */
-function drupalauth4ssp_user_login_submit($form, \Drupal\Core\Form\FormStateInterface $form_state) {
+function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state) {
   // If the ReturnTo URL is okay, send the user to the URL.
   $urlHelper = \Drupal::service('drupalauth4ssp.url_helper');
   if ($urlHelper->isReturnToUrlValid()) {

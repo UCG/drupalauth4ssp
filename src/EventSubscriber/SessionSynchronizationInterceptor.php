@@ -38,13 +38,6 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
   protected $account;
 
   /**
-   * Validator used to ensure user is SSO-enabled.
-   *
-   * @var \Drupal\drupalauth4ssp\UserValidatorInterface
-   */
-  protected $userValidator;
-
-  /**
    * Entity type manager.
    *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
@@ -59,13 +52,6 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
   protected $moduleHandler;
 
   /**
-   * Session manager.
-   *
-   * @var \Drupal\Core\Session\SessionManagerInterface;
-   */
-  protected $sessionManager;
-
-  /**
    * Session.
    *
    * @var \Symfony\Component\HttpFoundation\Session\Session
@@ -73,11 +59,25 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
   protected $session;
 
   /**
+   * Session manager.
+   *
+   * @var \Drupal\Core\Session\SessionManagerInterface;
+   */
+  protected $sessionManager;
+
+  /**
    * Service to interact with simpleSAMLphp.
    *
    * @var \Drupal\drupalauth4ssp\SimpleSamlPhpLink
    */
   protected $sspLink;
+
+  /**
+   * Validator used to ensure user is SSO-enabled.
+   *
+   * @var \Drupal\drupalauth4ssp\UserValidatorInterface
+   */
+  protected $userValidator;
 
     /**
    * Creates a login route interceptor instance.
@@ -155,11 +155,13 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
       if ($this->account->id() === $uid) {
         return;
       }
+
       // Otherwise, we'll have to sync the sessions. If we are logged in, we
       // know we're logged in as the wrong user, so log out.
       if (!$this->account->isAnonymous()) {
         user_logout();
       }
+
       // Then attempt to load the simpleSAMLphp user.
       $userStorage = $this->entityTypeManager->getStorage('user');
       $user = $userStorage->load($uid);
@@ -170,11 +172,13 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
         $event->setResponse(new RedirectResponse($sloUrl, HttpHelpers::getAppropriateTemporaryRedirect($request->getMethod())));
         return;
       }
+
       // Attempt to log the user in.
       // Taken from src/UserSwitch.php from "Switch User" Drupal contrib mod.
       $this->sessionManager->regenerate();
       $this->account->setAccount($user);
       $this->session->set('uid', $user->id());
+
       // Attempt to reload the user, to see if it still exists. If it existed
       // before, but was deleted in between when we loaded in earlier and now,
       // we don't want to be logged in. Also check to ensure the user is still

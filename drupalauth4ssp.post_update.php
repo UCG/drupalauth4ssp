@@ -1,9 +1,10 @@
 <?php
 
 /**
- * @file
  * Post update hooks for drupalauth4ssp.
  */
+
+declare(strict_types = 1);
 
 /**
  * Add the authsource configuration parameter.

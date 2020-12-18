@@ -89,10 +89,10 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
   public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $requestStack, $sspLink, $cacheKillSwitch) {
     $this->account = $account;
     $this->userValidator = $userValidator;
-    $this->sspLink = $sspLink;
     $this->entityTypeManager = $entityTypeManager;
-    $this->cacheKillSwitch = $cacheKillSwitch;
     $this->requestStack = $requestStack;
+    $this->sspLink = $sspLink;
+    $this->cacheKillSwitch = $cacheKillSwitch;
   }
 
   /**
@@ -138,7 +138,8 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
     if (!isset($shouldInitiateLogin) || !$shouldInitiateLogin) {
       return;
     }
-    // Redirect to the home page.
+
+    // We will be redirecting to the home page.
     $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
 
     $masterRequest = $this->requestStack->getMasterRequest();

@@ -41,6 +41,7 @@ class ChainedUserValidator implements UserValidatorInterface {
         return FALSE;
       }
     }
+
     return TRUE;
   }
 

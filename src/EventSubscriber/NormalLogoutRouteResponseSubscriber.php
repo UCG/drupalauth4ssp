@@ -4,8 +4,8 @@ declare(strict_types = 1);
 
 namespace Drupal\drupalauth4ssp\EventSubscriber;
 
-use Drupal\Core\Url;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
 use Drupal\drupalauth4ssp\Helper\HttpHelpers;
 use Drupal\drupalauth4ssp\Helper\UrlHelpers;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -64,9 +64,9 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    */
   public function __construct(AccountInterface $account, $requestStack, $sspLink, $cacheKillSwitch) {
     $this->account = $account;
+    $this->requestStack = $requestStack;
     $this->sspLink = $sspLink;
     $this->cacheKillSwitch = $cacheKillSwitch;
-    $this->requestStack = $requestStack;
   }
 
   /**
@@ -107,7 +107,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // Redirect to the home page.
+    // We will be redirecting to the home page.
     $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
     
     // Redirect immediately if we are unauthenticated with simpleSAMLphp.

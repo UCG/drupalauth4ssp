@@ -26,6 +26,7 @@ class LoginLogoutRouteModifierSubscriber extends RouteSubscriberBase {
       // If the route is defined, ensure anyone can access it.
       $loginRoute->setRequirements(['_access' => 'TRUE']);
     }
+
     // Next, modify the user.logout route.
     $logoutRoute = $collection->get('user.logout');
     if ($logoutRoute) {

@@ -9,8 +9,8 @@ use Drupal\drupalauth4ssp\Exception\SimpleSamlPhpAttributeException;
 use Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException;
 use SimpleSAML\Auth\Simple;
 use SimpleSAML\Configuration;
-use SimpleSAML\Session;
 use SimpleSAML\Error\CriticalConfigurationError;
+use SimpleSAML\Session;
 
 /**
  * Service to interact with the simpleSAMLphp authentication library.
@@ -29,18 +29,18 @@ class SimpleSamlPhpLink {
    */
   protected $attributes = [];
 
-  /** 'TRUE' if there was a valid simpleSAMLphp session when property set.
-   *
-   * @var bool
-   */
-  protected $isLoggedIn;
-
   /**
    * Module configuration.
    *
    * @var \Drupal\Core\Config\ImmutableConfig
    */
   protected $configuration;
+
+  /** 'TRUE' if there was a valid simpleSAMLphp session when property set.
+   *
+   * @var bool
+   */
+  protected $isLoggedIn;
 
   /**
    * simpleSAMLphp object.
@@ -154,7 +154,7 @@ class SimpleSamlPhpLink {
    *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
-  public function getAttribute($attribute) {
+  public function getAttribute(string $attribute) {
     $this->getAttributes();
 
     if (isset($this->attributes)) {
@@ -189,11 +189,13 @@ class SimpleSamlPhpLink {
     try {
       // Attempt to create SSP "Simple" instance.
       $this->simpleSaml = new Simple($authenticationSource);
+
       // Force load of all attributes if logged in.
       $wasAuthenticated = $this->simpleSaml->isAuthenticated();
       if ($wasAuthenticated) {
         $this->attributes = $this->simpleSaml->getAttributes();
       }
+
       if ($wasAuthenticated && !$this->simpleSaml->isAuthenticated()) {
         // If the session has expired since acquiring attributes, clear the
         // attributes we acquired and set a flag indicated the SSP session is no
@@ -221,9 +223,10 @@ class SimpleSamlPhpLink {
   }
 
   /**
-   * Checks to ensure the simpleSAMLphp session storage type is valid (i.e., not
-   * set to 'phpsession'). Throws an exception if the session storage type could
-   * not be determined to be valid.
+   * Checks to ensure the simpleSAMLphp session storage type is valid. 
+   *
+   * This method ensures the storage type is not set to 'phpsession'). Throws an
+   * exception if the session storage type could not be determined to be valid.
    *
    * @return void
    * @throws

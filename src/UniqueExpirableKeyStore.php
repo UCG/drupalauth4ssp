@@ -73,7 +73,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
   protected $tableName;
 
   /**
-   * Constructs a new Drupal\drupalauth4ssp\UniqueExpirableKeyStore object.
+   * Constructs a new \Drupal\drupalauth4ssp\UniqueExpirableKeyStore object.
    *
    * @param string $storeId
    *   Identifier of the key store associated with this object. All keys are
@@ -97,8 +97,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *   Thrown if it could not be verified that the table represented by
    *   $tableName uses InnoDB as its storage engine.
    * @throws \RuntimeException
-   *   The size of a PHP integer on this platform is not at least four bytes
-   *   (such a size is needed to ensure Unix timestamps can be accurately
+   *   Thrown if the size of a PHP integer on this platform is not at least four
+   *   bytes (such a size is needed to ensure Unix timestamps can be accurately
    *   represented).
    */
   public function __construct(string $storeId, $databaseConnection, string $tableName = self::DEFAULT_TABLE_NAME) {
@@ -138,7 +138,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *   Thrown if it could not be verified that the table represented by
    *   $tableName uses InnoDB as its storage engine.
    * @throws \PDOException
-   *   A database error occurs.
+   *   Thrown if a database error occurs.
    */
   public function cleanupGarbage() : void {
     // Check the validity of the database and storage engine types.
@@ -170,21 +170,21 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * $_SERVER['REQUEST_TIME'], if it is available, or otherwise with time().
    *
    * @param string $key
-   *   Key to attempt to insert (max size = MAX_KEY_LENGTH)
+   *   Key to attempt to insert (max size = MAX_KEY_LENGTH).
    * @param int $expiryTime
    *   Expiry Unix time stamp.
    * @return bool
    *   'TRUE' if the key was successfully inserted or updated, else 'FALSE' (see
    *   method description above).
    * @throws \InvalidArgumentException
-   *   $key is empty.
+   *   Thrown if $key is empty.
    * @throws \InvalidArgumentException
-   *   $expiryTime is less than zero.
+   *   Thrown if $expiryTime is less than zero.
    * @throws \InvalidArgumentException
-   *   $key is more than MAX_KEY_LENGTH characters in length.
+   *   Thrown if $key is more than MAX_KEY_LENGTH characters in length.
    * @throws \InvalidArgumentException
-   *   $expiryTime is less than $_SERVER['REQUEST_TIME'], if it is available,
-   *   or otherwise if it is less than time().
+   *   Thrown if $expiryTime is less than $_SERVER['REQUEST_TIME'], if it is
+   *   available, or otherwise if it is less than time().
    * @throws \RuntimeException
    *   Thrown if type of database associated with $databaseConnection not set to
    *   MySQL.
@@ -196,7 +196,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * @throws \RuntimeException
    *   Thrown if corruption is detected in the database.
    * @throws \PDOException
-   *   A database error occurs.
+   *   Thrown if a database error occurs.
    */
   public function tryPutKey(string $key, int $expiryTime) : bool {
     if ($key === '') {
@@ -282,13 +282,13 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * $_SERVER['REQUEST_TIME'], if it is available, or otherwise with time().
    *
    * @param string $key
-   *   Key to attempt to take (max size = MAX_KEY_LENGTH)
+   *   Key to attempt to take (max size = MAX_KEY_LENGTH).
    * @return bool
-   *   'TRUE' if an active key existed and was deleted, else 'FALSE'.
+   *   Thrown if 'TRUE' if an active key existed and was deleted, else 'FALSE'.
    * @throws \InvalidArgumentException
-   *   $key is empty.
+   *   Thrown if $key is empty.
    * @throws \InvalidArgumentException
-   *   $key is more than MAX_KEY_LENGTH characters in length.
+   *   Thrown if $key is more than MAX_KEY_LENGTH characters in length.
    * @throws \RuntimeException
    *   Thrown if type of database associated with $databaseConnection not set to
    *   MySQL.
@@ -300,7 +300,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * @throws \RuntimeException
    *   Thrown if corruption is detected in the database.
    * @throws \PDOException
-   *   A database error occurs.
+   *   Thrown if a database error occurs.
    */
   public function tryTakeKey(string $key) : bool {
     if ($key === '') {
@@ -380,6 +380,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     if ($this->databaseConnection->databaseType() !== 'mysql') {
       throw new \RuntimeException('The database type must be MySQL to work with Drupal\\drupalauth4ssp\\UniqueExpirableKeyStore.');
     }
+
     // Check to see if database driver supports transactions.
     if (!$this->databaseConnection->supportsTransactions()) {
       throw new \RuntimeException('Database driver doesn\'t support transactions.');
@@ -479,6 +480,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     if ($errorCode !== '1213') {
       $transaction->rollBack();
     }
+
     // Throw the deadlock exception.
     throw $e;
   }
@@ -488,7 +490,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *
    * @return void
    * @throws \PDOException
-   *   A database error occurs.
+   *   Thrown if a database error occurs.
    */
   protected function setAppropriateTransactionIsolationLevel() : void {
     // Set the transaction level to the highest possible for an added safety
