@@ -112,7 +112,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
   }
 
   /**
-   * Ensures Drupal session is synchronized with simpleSAMLphp session.
+   * Handles the request event.
    *
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   The request event to which we have subscribed.
@@ -121,20 +121,32 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
-  public function synchronizeSessionTypesOnRequest($event) : void {
+  public function handleRequest($event) : void {
     // We don't want to perform synchronization except on master requests.
     if (!$event->isMasterRequest()) {
       return;
     }
 
     $request = $event->getRequest();
-    // We don't want ot perform synchronization when we're trying to perform an
-    // SSO login
+    // We don't want to perform synchronization when we're trying to perform an
+    // SSO login.
     $path = $request->getPathInfo();
     if ($path === Constants::SSO_LOGIN_PATH) {
       return;
     }
 
+    // Otherwise, attempt to synchronize the session types.
+    $this->synchronizeSessionTypes($request);
+  }
+
+  /**
+   * Ensures Drupal session is synchronized with simpleSAMLphp session.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   Request that triggered this synchronization.
+   * @return void
+   */
+  public function synchronizeSessionTypes($request) : void {
     // See if we have a simpleSAMLphp session.
     if ($this->sspLink->isAuthenticated()) {
       // Grab the user ID.
@@ -205,7 +217,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
     // one other event with priority 299, which is used to set the current time
     // zone. However, the time zone subscriber automatically handles a change in
     // user.
-    $events[KernelEvents::REQUEST][] = ['synchronizeSessionTypesOnRequest', 299];
+    $events[KernelEvents::REQUEST][] = ['handleRequest', 299];
 
     return $events;
   }

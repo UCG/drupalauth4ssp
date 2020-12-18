@@ -94,7 +94,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
    *   The request event to which we have subscribed.
    * @return void
    */
-  public function handleBadLoginStatus($event) : void {
+  public function handleSsoLoginRequest($event) : void {
     // If we are not on the SSO login route, get out.
     $request = $event->getRequest();
     if ($request->attributes->get('_route') !== 'drupalauth4ssp.ssoLogin') {
@@ -130,7 +130,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    return [KernelEvents::REQUEST => ['handleBadLoginStatus']];
+    return [KernelEvents::REQUEST => ['handleSsoLoginRequest']];
   }
 
 }
