@@ -8,7 +8,7 @@ namespace Drupal\drupalauth4ssp;
  * Contains constants related to the DrupalAuth for SimpleSAMLphp module.
  * @static
  */
-class Constants {
+final class Constants {
 
   /**
    * Empty private constructor to stop people from instantiating this class.
