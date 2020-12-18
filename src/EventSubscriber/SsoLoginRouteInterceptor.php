@@ -97,7 +97,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
   public function handleBadLoginStatus($event) : void {
     // If we are not on the SSO login route, get out.
     $request = $event->getRequest();
-    if ($request->attributes->get('_route') != 'drupalauth4ssp.ssoLogin') {
+    if ($request->attributes->get('_route') !== 'drupalauth4ssp.ssoLogin') {
       return;
     }
     // If user is anonymous, get out of here.

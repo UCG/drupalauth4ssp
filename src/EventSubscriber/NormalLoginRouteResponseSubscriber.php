@@ -112,7 +112,7 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
     $request = $event->getRequest();
 
     // If we're not using the default login route, get out.
-    if ($request->attributes->get('_route') != 'user.login') {
+    if ($request->attributes->get('_route') !== 'user.login') {
       return;
     }
 

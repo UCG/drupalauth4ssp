@@ -84,7 +84,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
     $masterRequest = $this->requestStack->getMasterRequest();
 
     // If we're not using the default logout route, get out.
-    if ($request->attributes->get('_route') != 'user.logout') {
+    if ($request->attributes->get('_route') !== 'user.logout') {
       return;
     }
 
