@@ -66,7 +66,7 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
     // only designed for those cases.
     $route = $event->getRequest()->attributes->get('_route');
     $userIsAnonymous = $this->account->isAnonymous();
-    if (!(($route == 'user.login' && !$userIsAnonymous) || ($route == 'user.logout' && $userIsAnonymous))) {
+    if (!(($route === 'user.login' && !$userIsAnonymous) || ($route === 'user.logout' && $userIsAnonymous))) {
       return;
     }
 

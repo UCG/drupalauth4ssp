@@ -131,7 +131,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
     // We don't want ot perform synchronization when we're trying to perform an
     // SSO login
     $path = $request->getPathInfo();
-    if ($path == Constants::SSO_LOGIN_PATH) {
+    if ($path === Constants::SSO_LOGIN_PATH) {
       return;
     }
 

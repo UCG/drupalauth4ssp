@@ -445,13 +445,13 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
         // transaction be retried, as both those codes could be caused by
         // deadlocks. Otherwise, rollback the transaction and rethrow the
         // exception.
-        $mysqlErrorCode = $e->errorInfo[1];
-        if ($mysqlErrorCode == '1205') {
+        $mysqlErrorCode = (string) $e->errorInfo[1];
+        if ($mysqlErrorCode === '1205') {
           // Rollback is not automatic for a 1205 (only one statement is rolled
           // back), so we do it here.
           $transaction->rollback();
         }
-        else if ($mysqlErrorCode != '1213') {
+        else if ($mysqlErrorCode !== '1213') {
           // Non-deadlock error = rollback and rethrow.
           $transaction->rollBack();
           throw $e;
@@ -474,9 +474,9 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     // has automatically been rolled back (rollback should happen for a 1213,
     // but not necessarily for a 1205).
     assert(isset($e));
-    $errorCode = $e->errorInfo[1];
-    assert($errorCode == '1205' || $errorCode == '1213');
-    if ($errorCode != '1213') {
+    $errorCode = (string) $e->errorInfo[1];
+    assert($errorCode === '1205' || $errorCode === '1213');
+    if ($errorCode !== '1213') {
       $transaction->rollBack();
     }
     // Throw the deadlock exception.

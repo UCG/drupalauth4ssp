@@ -233,9 +233,9 @@ class SimpleSamlPhpLink {
     $simpleSamlPhpConfiguration = static::getSimpleSamlConfiguration();
 
     // Grab session storage value, as configured.
-    $simpleSamlPhpSessionStorage = $simpleSamlPhpConfiguration->getValue('store.type');
+    $simpleSamlPhpSessionStorage = (string) $simpleSamlPhpConfiguration->getValue('store.type');
     // Check to ensure we aren't using PHP sessions.
-    if($simpleSamlPhpSessionStorage == 'phpsession') {
+    if($simpleSamlPhpSessionStorage === 'phpsession') {
       throw new SimpleSamlPhpInternalConfigException("simpleSAMLphp session storage type is set to 'phpsession'.");
     }
   }
