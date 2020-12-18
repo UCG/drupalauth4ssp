@@ -81,7 +81,10 @@ class SimpleSamlPhpLink {
   }
 
   /**
-   * Checks whether the user has an authenticated simpleSAMLphp session.
+   * Checks whether the user is or was authenticated with simpleSAMLphp.
+   *
+   * The current authentication status is returned if the authentication status
+   * has not yet been cached; otherwise the cached status is returned.
    *
    * @return bool
    *   'TRUE' if the user has an authenticated SSP session; else 'FALSE'.
