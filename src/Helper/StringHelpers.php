@@ -25,7 +25,7 @@ final class StringHelpers {
    *   'TRUE' if $str is 'NULL' or empty string, else 'FALSE'.
    */
   static function isNullOrEmpty(?string $str) : bool {
-    return !isset($str) || $str === '';
+    return (!isset($str) || $str === '') ? TRUE : FALSE;
   }
 
   /**

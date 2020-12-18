@@ -262,7 +262,7 @@ function _drupalauth4ssp_get_current_route() : ?string {
  *   'TRUE' if standard login route, else 'FALSE'.
  */
 function _drupalauth4ssp_is_current_route_normal_login_route() : bool {
-  return _drupalauth4ssp_get_current_route() == 'user.login';
+  return (_drupalauth4ssp_get_current_route() == 'user.login') ? TRUE : FALSE;
 }
 
 /**
@@ -272,7 +272,7 @@ function _drupalauth4ssp_is_current_route_normal_login_route() : bool {
  *   'TRUE' if standard logout route, else 'FALSE'.
  */
 function _drupalauth4ssp_is_current_route_normal_logout_route() : bool {
-  return _drupalauth4ssp_get_current_route() == 'user.logout';
+  return (_drupalauth4ssp_get_current_route() == 'user.logout') ? TRUE : FALSE;
 }
 
 /**
@@ -282,5 +282,5 @@ function _drupalauth4ssp_is_current_route_normal_logout_route() : bool {
  *   'TRUE' if SP-initiated SSO route, else 'FALSE'.
  */
 function _drupalauth4ssp_is_current_route_sso_login_route() : bool {
-  return _drupalauth4ssp_get_current_route() == 'drupalauth4ssp.ssoLogin';
+  return (_drupalauth4ssp_get_current_route() == 'drupalauth4ssp.ssoLogin') ? TRUE : FALSE;
 }
