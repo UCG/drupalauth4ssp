@@ -5,27 +5,11 @@ declare(strict_types = 1);
 namespace Drupal\drupalauth4ssp\Helper;
 
 use Drupal\Component\Utility\UrlHelper;
-use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Path\PathMatcherInterface;
 
 /**
  * URL-related helper service.
  */
 class UrlHelperService {
-
-  /**
-   * DrupalAuth for SimpleSamlPHP configuration.
-   *
-   * @var \Drupal\Core\Config\ImmutableConfig
-   */
-  protected $configuration;
-
-  /**
-   * Path matcher.
-   *
-   * @var \Drupal\Core\Path\PathMatcherInterface
-   */
-  protected $pathMatcher;
 
   /**
    * Path validator.
@@ -44,19 +28,13 @@ class UrlHelperService {
   /**
    * Creates a new \Drupal\drupalauth4ssp\Helper\UrlHelperService object.
    *
-   * @param \Drupal\Core\Path\PathMatcherInterface $pathMatcher
-   *   Path matcher.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configurationFactory
-   *   Configuration factory.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   Request stack.
    * @param PathValidator $pathValidator
    *   Path validator.
    */
-  public function __construct(PathMatcherInterface $pathMatcher, ConfigFactoryInterface $configurationFactory, $requestStack, $pathValidator) {
+  public function __construct($requestStack, $pathValidator) {
     $this->pathValidator = $pathValidator;
-    $this->pathMatcher = $pathMatcher;
-    $this->configuration = $configurationFactory->get('drupalauth4ssp.settings');
     $this->requestStack = $requestStack;
   }
 

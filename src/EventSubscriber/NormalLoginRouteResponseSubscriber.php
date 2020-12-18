@@ -9,7 +9,6 @@ use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\drupalauth4ssp\Helper\HttpHelpers;
-use Drupal\drupalauth4ssp\SimpleSamlPhpLink;
 use Drupal\drupalauth4ssp\UserValidatorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -65,13 +64,6 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
   protected $sspLink;
 
   /**
-   * URL helper service.
-   *
-   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
-   */
-  protected $urlHelper;
-
-  /**
    * Validator used to ensure user is SSO-enabled.
    *
    * @var \Drupal\drupalauth4ssp\UserValidatorInterface
@@ -89,17 +81,14 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    *   Entity type manager.
    * @param \Symfony\Component\HttpFoundation\RequestStack
    *   Request stack.
-   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
-   *   URL helper service.
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
    *   Service to interact with simpleSAMLphp.
    * @param \Drupal\Core\PageCache\ResponsePolicy\KillSwitch $cacheKillSwitch
    *   Kill switch with which to disable caching.
    */
-  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $requestStack, $urlHelper, $sspLink, $cacheKillSwitch) {
+  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, EntityTypeManagerInterface $entityTypeManager, $requestStack, $sspLink, $cacheKillSwitch) {
     $this->account = $account;
     $this->userValidator = $userValidator;
-    $this->urlHelper = $urlHelper;
     $this->sspLink = $sspLink;
     $this->entityTypeManager = $entityTypeManager;
     $this->cacheKillSwitch = $cacheKillSwitch;

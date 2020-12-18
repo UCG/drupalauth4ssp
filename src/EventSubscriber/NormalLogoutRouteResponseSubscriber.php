@@ -6,10 +6,8 @@ namespace Drupal\drupalauth4ssp\EventSubscriber;
 
 use Drupal\Core\Url;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\drupalauth4ssp\Helper\HttpHelpers;
 use Drupal\drupalauth4ssp\Helper\UrlHelpers;
-use Drupal\drupalauth4ssp\SimpleSamlPhpLink;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -53,29 +51,19 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
   protected $sspLink;
 
   /**
-   * URL helper service.
-   *
-   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
-   */
-  protected $urlHelper;
-
-  /**
    * Creates a normal logout route response subscriber instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   Request stack.
-   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
-   *   URL helper service.
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
    *   Service to interact with simpleSAMLphp.
    * @param \Drupal\Core\PageCache\ResponsePolicy\KillSwitch $cacheKillSwitch
    *   Kill switch with which to disable caching.
    */
-  public function __construct(AccountInterface $account, $requestStack, $urlHelper, $sspLink, $cacheKillSwitch) {
+  public function __construct(AccountInterface $account, $requestStack, $sspLink, $cacheKillSwitch) {
     $this->account = $account;
-    $this->urlHelper = $urlHelper;
     $this->sspLink = $sspLink;
     $this->cacheKillSwitch = $cacheKillSwitch;
     $this->requestStack = $requestStack;

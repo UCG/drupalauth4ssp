@@ -6,9 +6,6 @@ parameters:
   # Fudge amount for lifetime of nonces (see drupalauth4ssp_set_user_cookie()).
   drupalauth4ssp.nonce_lifetime_delta: 20
 services:
-  config:
-    class: Drupal\drupalauth4ssp\Config
-    arguments: ['@config.factory']
   drupalauth4ssp.sso_login_route_interceptor_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\SsoLoginRouteInterceptor
     arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@request_stack', '@drupalauth4ssp.url_helper']
@@ -16,17 +13,17 @@ services:
       - { name: event_subscriber }
   drupalauth4ssp.normal_login_response_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLoginRouteResponseSubscriber
-    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@request_stack', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
+    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@request_stack', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.normal_logout_response_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutRouteResponseSubscriber
-    arguments: ['@current_user', '@request_stack', '@drupalauth4ssp.url_helper', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
+    arguments: ['@current_user', '@request_stack', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.normal_logout_login_request_subscriber:
     class: Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutLoginRouteRequestSubscriber
-    arguments: ['@current_user', '@request_stack', '@drupalauth4ssp.url_helper']
+    arguments: ['@current_user', '@request_stack']
     tags:
       - { name: event_subscriber }
   drupalauth4ssp.session_synchronization_interceptor_subscriber:
@@ -40,7 +37,7 @@ services:
       - { name: service_collector, tag: 'drupalauth4ssp.user_validator.sub_validator', call: addValidator }
   drupalauth4ssp.url_helper:
     class: Drupal\drupalauth4ssp\Helper\UrlHelperService
-    arguments: ['@path.matcher', '@config.factory', '@request_stack', '@path.validator']
+    arguments: ['@request_stack', '@path.validator']
   drupalauth4ssp.ssp_link:
     class: Drupal\drupalauth4ssp\SimpleSamlPhpLink
     arguments: ['@config.factory']

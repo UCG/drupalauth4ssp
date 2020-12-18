@@ -14,9 +14,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\drupalauth4ssp\GarbageCollectableInterface;
 use Drupal\drupalauth4ssp\Helper\TimeHelpers;
-use Drupal\user\Entity\User;
 use SimpleSAML\Configuration;
-use SimpleSAML\Session;
 
 /**
  * Implements hook_cron.

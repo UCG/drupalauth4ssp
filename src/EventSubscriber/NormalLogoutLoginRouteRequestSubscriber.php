@@ -40,25 +40,15 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
   protected $requestStack;
 
   /**
-   * URL helper service.
-   *
-   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
-   */
-  protected $urlHelper;
-
-  /**
    * Creates a new normal logout/login route request subscriber object.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Current account.
    * @param \Symfony\Component\HttpFoundation\RequestStack
    *   Request stack.
-   * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService
-   *   URL helper service.
    */
-  public function __construct(AccountInterface $account, $requestStack, $urlHelper) {
+  public function __construct(AccountInterface $account, $requestStack) {
     $this->account = $account;
-    $this->urlHelper = $urlHelper;
     $this->requestStack = $requestStack;
   }
 
