@@ -60,6 +60,16 @@ function drupalauth4ssp_user_login($account) {
 }
 
 /**
+ * Implements hook_form_FORM_ID_alter.
+ */
+function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $form_state) {
+  // Don't do SSO logic unless the login route is the SP-initiated SSO route.
+  if (_drupalauth4ssp_is_current_route_sso_login_route()) {
+    $form['#submit'][] = 'drupalauth4ssp_user_login_submit';
+  }
+}
+
+/**
  * Implements hook_user_logout.
  */
 function drupalauth4ssp_user_logout($account) {
@@ -191,6 +201,27 @@ function drupalauth4ssp_unset_user_cookie() {
 }
 
 /**
+ * Sets redirect upon successful login.
+ */
+function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state) {
+  // If the ReturnTo URL is okay, send the user to the URL.
+  $urlHelper = \Drupal::service('drupalauth4ssp.url_helper');
+  if ($urlHelper->isReturnToUrlValid()) {
+    $form_state->setRedirectUrl(Url::fromUri($urlHelper->getReturnToUrl()));
+  }
+}
+
+/**
+ * Gets the current route name, if possible.
+ *
+ * @return string|NULL
+ *   Current route name, or 'NULL' if no route found.
+ */
+function _drupalauth4ssp_get_current_route() : ?string {
+  return \Drupal::routeMatch()->getRouteName();
+}
+
+/**
  * Returns the SimpleSAMLphp configuration.
  *
  * @todo Convert to service?
@@ -222,37 +253,6 @@ function _drupalauth4ssp_get_simplesamlphp_config() {
   unset($ssp_authsources);
 
   return $config;
-}
-
-/**
- * Implements hook_form_FORM_ID_alter.
- */
-function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $form_state) {
-  // Don't do SSO logic unless the login route is the SP-initiated SSO route.
-  if (_drupalauth4ssp_is_current_route_sso_login_route()) {
-    $form['#submit'][] = 'drupalauth4ssp_user_login_submit';
-  }
-}
-
-/**
- * Sets redirect upon successful login.
- */
-function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state) {
-  // If the ReturnTo URL is okay, send the user to the URL.
-  $urlHelper = \Drupal::service('drupalauth4ssp.url_helper');
-  if ($urlHelper->isReturnToUrlValid()) {
-    $form_state->setRedirectUrl(Url::fromUri($urlHelper->getReturnToUrl()));
-  }
-}
-
-/**
- * Gets the current route name, if possible.
- *
- * @return string|NULL
- *   Current route name, or 'NULL' if no route found.
- */
-function _drupalauth4ssp_get_current_route() : ?string {
-  return \Drupal::routeMatch()->getRouteName();
 }
 
 /**

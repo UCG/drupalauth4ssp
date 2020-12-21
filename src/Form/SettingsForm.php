@@ -13,20 +13,6 @@ class SettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormId() {
-    return 'drupalauth4ssp_settings';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getEditableConfigNames() {
-    return ['drupalauth4ssp.settings'];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['authsource'] = [
       '#type' => 'textfield',
@@ -44,11 +30,25 @@ class SettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
+  public function getFormId() {
+    return 'drupalauth4ssp_settings';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('drupalauth4ssp.settings')
       ->set('authsource', $form_state->getValue('authsource'))
       ->save();
     parent::submitForm($form, $form_state);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEditableConfigNames() {
+    return ['drupalauth4ssp.settings'];
   }
 
 }

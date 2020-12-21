@@ -60,6 +60,48 @@ class SimpleSamlPhpLink {
   }
 
   /**
+   * Get a specific simpleSAMLphp attribute.
+   *
+   * @param string $attribute
+   *   The name of the attribute to retrieve.
+   *
+   * @return mixed
+   *   The attribute value.
+   *
+   * @throws \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpAttributeException
+   *   Exception when attribute is not set.
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
+   */
+  public function getAttribute(string $attribute) {
+    $this->getAttributes();
+
+    if (isset($this->attributes)) {
+      if (!empty($this->attributes[$attribute][0])) {
+        return $this->attributes[$attribute][0];
+      }
+    }
+
+    throw new SimpleSamlPhpAttributeException(sprintf('Error in drupalauth4ssp module: no valid "%s" attribute set.', $attribute));
+  }
+
+  /**
+   * Gets all simpleSAMLphp attributes.
+   *
+   * @return array
+   *   Array of attributes.
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
+   */
+  public function getAttributes() {
+    $this->prepareSimpleSamlStuff();
+
+    return $this->attributes;
+  }
+
+  /**
    * Initiates simpleSAMLphp authentication (unless already logged in).
    *
    * Notes: This method breaks the Symfony request-response flow.
@@ -78,24 +120,6 @@ class SimpleSamlPhpLink {
 
     // Go ahead and forward to the IdP for login.
     $this->simpleSaml->requireAuth(['ReturnTo' => $returnUrl, 'KeepPost' => 'FALSE']);
-  }
-
-  /**
-   * Checks whether the user is or was authenticated with simpleSAMLphp.
-   *
-   * The current authentication status is returned if the authentication status
-   * has not yet been cached; otherwise the cached status is returned.
-   *
-   * @return bool
-   *   'TRUE' if the user has an authenticated SSP session; else 'FALSE'.
-   * @throws
-   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
-   *   Thrown if there is a problem with the simpleSAMLphp configuration.
-   */
-  public function isAuthenticated() : bool {
-    $this->prepareSimpleSamlStuff();
-
-    return $this->isLoggedIn;
   }
 
   /**
@@ -125,45 +149,61 @@ class SimpleSamlPhpLink {
   }
 
   /**
-   * Gets all simpleSAMLphp attributes.
+   * Checks whether the user is or was authenticated with simpleSAMLphp.
    *
-   * @return array
-   *   Array of attributes.
+   * The current authentication status is returned if the authentication status
+   * has not yet been cached; otherwise the cached status is returned.
+   *
+   * @return bool
+   *   'TRUE' if the user has an authenticated SSP session; else 'FALSE'.
    * @throws
    *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
-  public function getAttributes() {
+  public function isAuthenticated() : bool {
     $this->prepareSimpleSamlStuff();
 
-    return $this->attributes;
+    return $this->isLoggedIn;
   }
 
   /**
-   * Get a specific simpleSAMLphp attribute.
+   * Checks to ensure the simpleSAMLphp session storage type is valid. 
    *
-   * @param string $attribute
-   *   The name of the attribute to retrieve.
+   * This method ensures the storage type is not set to 'phpsession'). Throws an
+   * exception if the session storage type could not be determined to be valid.
    *
-   * @return mixed
-   *   The attribute value.
-   *
-   * @throws \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpAttributeException
-   *   Exception when attribute is not set.
+   * @return void
    * @throws
-   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
-   *   Thrown if there is a problem with the simpleSAMLphp configuration.
+   *   \Drupal\simplesamlphp_auth\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if session storage type could not be determined to be valid, or if
+   *   another simpleSAMLphp-related configuration issue occurs.
    */
-  public function getAttribute(string $attribute) {
-    $this->getAttributes();
+  protected function checkSimpleSamlPhpStorageTypeValid() : void {
+    // Grab simpleSAMLphp configuration if we can.
+    $simpleSamlPhpConfiguration = static::getSimpleSamlConfiguration();
 
-    if (isset($this->attributes)) {
-      if (!empty($this->attributes[$attribute][0])) {
-        return $this->attributes[$attribute][0];
-      }
+    // Grab session storage value, as configured.
+    $simpleSamlPhpSessionStorage = (string) $simpleSamlPhpConfiguration->getValue('store.type');
+    // Check to ensure we aren't using PHP sessions.
+    if($simpleSamlPhpSessionStorage === 'phpsession') {
+      throw new SimpleSamlPhpInternalConfigException("simpleSAMLphp session storage type is set to 'phpsession'.");
     }
+  }
 
-    throw new SimpleSamlPhpAttributeException(sprintf('Error in drupalauth4ssp module: no valid "%s" attribute set.', $attribute));
+  /**
+   * Attempts to obtain the current simpleSAMLphp configuration.
+   *
+   * @return Configuration SSP configuration.
+   * @throws \Drupal\simplesamlphp_auth\SimpleSamlPhpInternalConfigException
+   *   Thrown if simpleSAMLphp configuration couldn't be loaded.
+   */
+  protected static function getSimpleSamlConfiguration() : Configuration {
+    try {
+      return Configuration::getInstance();
+    }
+    catch (CriticalConfigurationError $e) {
+      throw new SimpleSamlPhpInternalConfigException('Could not obtain simpleSAMLphp configuration.', 0, $e);
+    }
   }
 
   /**
@@ -220,46 +260,6 @@ class SimpleSamlPhpLink {
 
     // Verify postcondition.
     assert(isset($this->simpleSaml));
-  }
-
-  /**
-   * Checks to ensure the simpleSAMLphp session storage type is valid. 
-   *
-   * This method ensures the storage type is not set to 'phpsession'). Throws an
-   * exception if the session storage type could not be determined to be valid.
-   *
-   * @return void
-   * @throws
-   *   \Drupal\simplesamlphp_auth\Exception\SimpleSamlPhpInternalConfigException
-   *   Thrown if session storage type could not be determined to be valid, or if
-   *   another simpleSAMLphp-related configuration issue occurs.
-   */
-  protected function checkSimpleSamlPhpStorageTypeValid() : void {
-    // Grab simpleSAMLphp configuration if we can.
-    $simpleSamlPhpConfiguration = static::getSimpleSamlConfiguration();
-
-    // Grab session storage value, as configured.
-    $simpleSamlPhpSessionStorage = (string) $simpleSamlPhpConfiguration->getValue('store.type');
-    // Check to ensure we aren't using PHP sessions.
-    if($simpleSamlPhpSessionStorage === 'phpsession') {
-      throw new SimpleSamlPhpInternalConfigException("simpleSAMLphp session storage type is set to 'phpsession'.");
-    }
-  }
-
-  /**
-   * Attempts to obtain the current simpleSAMLphp configuration.
-   *
-   * @return Configuration SSP configuration.
-   * @throws \Drupal\simplesamlphp_auth\SimpleSamlPhpInternalConfigException
-   *   Thrown if simpleSAMLphp configuration couldn't be loaded.
-   */
-  protected static function getSimpleSamlConfiguration() : Configuration {
-    try {
-      return Configuration::getInstance();
-    }
-    catch (CriticalConfigurationError $e) {
-      throw new SimpleSamlPhpInternalConfigException('Could not obtain simpleSAMLphp configuration.', 0, $e);
-    }
   }
 
 }
