@@ -98,8 +98,8 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
   /**
    * Handles response event for standard login routes.
    *
-   * Notes: This method breaks the Symfony request-response flow. Also, if
-   * simpleSAMLphp authentication is required, this method doesn't return.
+   * Notes: If simpleSAMLphp authentication is required, this method doesn't
+   * return.
    *
    * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
    *   Response event.

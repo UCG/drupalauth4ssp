@@ -93,6 +93,17 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   The request event to which we have subscribed.
    * @return void
+   * @throws \RuntimeException
+   *   Thrown if unable to generate the user ID cookie nonce.
+   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+   *   Thrown if could not identify valid return URL from the query string.
+   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+   *   Thrown if current user is a local authenticated user.
+   * @throws \Exception
+   *   Thrown if something is wrong with the simpleSAMLphp authentication source
+   *   configuration.
+   * @throws \SimpleSAML\Error\CriticalConfigurationError
+   *   Thrown if something is wrong with the simpleSAMLphp configuration.
    */
   public function handleSsoLoginRequest($event) : void {
     // If we are not on the SSO login route, get out.

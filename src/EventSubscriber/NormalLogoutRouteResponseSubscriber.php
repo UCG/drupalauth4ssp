@@ -78,6 +78,14 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    * @throws
    *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
+   * @throws \Exception
+   *   Thrown if something went wrong when attempting to obtain simpleSAMLphp
+   *   session information.
+   * @throws \Exception
+   *   Thrown if something is wrong with the simpleSAMLphp authentication source
+   *   configuration.
+   * @throws \SimpleSAML\Error\CriticalConfigurationError
+   *   Thrown if something is wrong with the simpleSAMLphp configuration.
    */
   public function handleNormalLogoutResponse($event) : void {
     $request = $event->getRequest();

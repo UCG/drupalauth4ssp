@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Drupal\drupalauth4ssp;
 
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\drupalauth4ssp\Helper\TimeHelpers;
 
 /**
@@ -137,7 +138,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * @throws \RuntimeException
    *   Thrown if it could not be verified that the table represented by
    *   $tableName uses InnoDB as its storage engine.
-   * @throws \PDOException
+   * @throws \Drupal\Core\Database\DatabaseExceptionWrapper
    *   Thrown if a database error occurs.
    */
   public function cleanupGarbage() : void {
@@ -195,7 +196,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *   $tableName uses InnoDB as its storage engine.
    * @throws \RuntimeException
    *   Thrown if corruption is detected in the database.
-   * @throws \PDOException
+   * @throws \Drupal\Core\Database\DatabaseExceptionWrapper
    *   Thrown if a database error occurs.
    */
   public function tryPutKey(string $key, int $expiryTime) : bool {
@@ -299,7 +300,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *   $tableName uses InnoDB as its storage engine.
    * @throws \RuntimeException
    *   Thrown if corruption is detected in the database.
-   * @throws \PDOException
+   * @throws \Drupal\Core\Database\DatabaseExceptionWrapper
    *   Thrown if a database error occurs.
    */
   public function tryTakeKey(string $key) : bool {
@@ -423,8 +424,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * @param callable $transactionExecution
    *   Function executing transaction statements.
    * @return void
-   * @throws \PDOException
-   *   A database error occurs.
+   * @throws \Drupal\Core\Database\DatabaseExceptionWrapper
+   *   Thrown if a database error occurs.
    */
   protected function executeDatabaseTransaction(callable $transactionExecution) {
     // Set the appropriate transaction isolation level.
@@ -440,13 +441,17 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
         // Return to caller -- transaction is finished.
         return;
       }
-      catch (\PDOException $e) {
+      catch (DatabaseExceptionWrapper $e) {
+        // Grab the inner PDO exception.
+        $pdoException = $e->getPrevious();
+        assert(isset($pdoException) && is_object($pdoException) && $pdoException instanceof \PDOException);
+
         // Check the MySQL error code -- if it corresponds to a detected
         // deadlock state (1213), or a lock acquire timeout (1205), let the
         // transaction be retried, as both those codes could be caused by
         // deadlocks. Otherwise, rollback the transaction and rethrow the
         // exception.
-        $mysqlErrorCode = (string) $e->errorInfo[1];
+        $mysqlErrorCode = (string) $pdoException->errorInfo[1];
         if ($mysqlErrorCode === '1205') {
           // Rollback is not automatic for a 1205 (only one statement is rolled
           // back), so we do it here.
@@ -489,7 +494,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * Sets the transaction isolation level to the highest level (SERIALIZABLE).
    *
    * @return void
-   * @throws \PDOException
+   * @throws \Drupal\Core\Database\DatabaseExceptionWrapper
    *   Thrown if a database error occurs.
    */
   protected function setAppropriateTransactionIsolationLevel() : void {

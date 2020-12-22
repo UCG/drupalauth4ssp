@@ -60,7 +60,6 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
    * @return void
    */
   public function handleLogoutOrLoginRequest($event) : void {
-
     // If we're not an unauthenticated user on the logout route, or an
     // authenticated user on the login route, get out, as this subscriber is
     // only designed for those cases.

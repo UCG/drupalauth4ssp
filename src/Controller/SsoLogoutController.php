@@ -60,6 +60,11 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    *   Response redirecting user to page indicated in query string return URL,
    *   or, if that URL doesn't exist, to the home page.
+   * @throws \Exception
+   *   Thrown if something is wrong with the simpleSAMLphp authentication source
+   *   configuration.
+   * @throws \SimpleSAML\Error\CriticalConfigurationError
+   *   Thrown if something is wrong with the simpleSAMLphp configuration.
    */
   public function handle() {
     if (!$this->account->isAnonymous()) {

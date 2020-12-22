@@ -30,6 +30,9 @@ class NoSsoSessionPageCacheRequestPolicy implements RequestPolicyInterface {
 
   /**
    * {@inheritdoc}
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function check($request) {
     if ($this->sspLink->isAuthenticated()) {

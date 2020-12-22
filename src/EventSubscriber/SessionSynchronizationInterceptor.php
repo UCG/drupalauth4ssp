@@ -145,6 +145,9 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   Request that triggered this synchronization.
    * @return void
+   * @throws
+   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function synchronizeSessionTypes($request) : void {
     // See if we have a simpleSAMLphp session.

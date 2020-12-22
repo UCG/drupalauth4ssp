@@ -104,9 +104,7 @@ class SimpleSamlPhpLink {
   /**
    * Initiates simpleSAMLphp authentication (unless already logged in).
    *
-   * Notes: This method breaks the Symfony request-response flow.
-   * Postconditions: This method fails to return unless 1) simpleSAMLphp already
-   * has an authenticated session, or 2) it throws an exception.
+   * Notes: This method may never return.
    *
    * @return void
    * @param string $returnUrl
@@ -131,6 +129,9 @@ class SimpleSamlPhpLink {
    * @throws
    *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
+   * @throws \Exception
+   *   Something went wrong when attempting to obtain simpleSAMLphp session
+   *   information.
    */
   public function invalidateSession() {
     $this->prepareSimpleSamlStuff();
@@ -140,8 +141,10 @@ class SimpleSamlPhpLink {
     }
 
     $session = Session::getSessionFromRequest();
-    foreach ($session->getAuthorities() as $authority) {
-      $session->setAuthorityExpire($authority, 1);
+    if ($session) {
+      foreach ($session->getAuthorities() as $authority) {
+        $session->setAuthorityExpire($authority, 1);
+      }
     }
 
     $this->isLoggedIn = FALSE;
@@ -193,7 +196,8 @@ class SimpleSamlPhpLink {
   /**
    * Attempts to obtain the current simpleSAMLphp configuration.
    *
-   * @return Configuration SSP configuration.
+   * @return Configuration
+   *   simpleSAMLphp configuration.
    * @throws \Drupal\simplesamlphp_auth\SimpleSamlPhpInternalConfigException
    *   Thrown if simpleSAMLphp configuration couldn't be loaded.
    */
@@ -258,7 +262,7 @@ class SimpleSamlPhpLink {
     // Ensure SSP session storage type is set correctly.
     $this->checkSimpleSamlPhpStorageTypeValid();
 
-    // Verify postcondition.
+    // Ensure Simple instance was initialized.
     assert(isset($this->simpleSaml));
   }
 

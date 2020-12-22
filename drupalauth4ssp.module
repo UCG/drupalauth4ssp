@@ -90,11 +90,16 @@ function drupalauth4ssp_user_logout($account) {
  *
  * @param \Drupal\Core\Session\AccountInterface $account
  *   User account.
- *
- * @todo Move to class and depend on SSP config service?
- * @see _drupalauth4ssp_get_simplesamlphp_config()
+ * @return void
+ * @throws \RuntimeException
+ *   Thrown if function was unable to generate the user ID cookie nonce.
+ * @throws \Exception
+ *   Thrown if something is wrong with the simpleSAMLphp authentication source
+ *   configuration.
+ * @throws \SimpleSAML\Error\CriticalConfigurationError
+ *   Thrown if something is wrong with the simpleSAMLphp configuration.
  */
-function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
+function drupalauth4ssp_set_user_cookie(AccountInterface $account) : void {
   // Get the configuration information from SimpleSAMLphp.
   $ssp_config = _drupalauth4ssp_get_simplesamlphp_config();
 
@@ -160,7 +165,12 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
   do {
     // Nonce = base-64 encoded version of 16 cryptographically random bytes.
     $nonce = base64_encode(random_bytes(16));
-    $wasNonceValid = $nonceCollisionStore->tryPutKey($nonce, $collisionStoreExpiry);
+    try {
+      $wasNonceValid = $nonceCollisionStore->tryPutKey($nonce, $collisionStoreExpiry);
+    }
+    catch (\Exception $e) {
+      throw new \RuntimeException('Failed to generate user ID cookie nonce.');
+    }
     $i++;
   } while (!$wasNonceValid && $i < 1000);
   if (!$wasNonceValid) {
@@ -183,6 +193,12 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) {
 
 /**
  * Unsets the special drupalauth4ssp user cookie.
+ *
+ * @throws \Exception
+ *   Thrown if something is wrong with the simpleSAMLphp authentication source
+ *   configuration.
+ * @throws \SimpleSAML\Error\CriticalConfigurationError
+ *   Thrown if something is wrong with the simpleSAMLphp configuration.
  */
 function drupalauth4ssp_unset_user_cookie() {
   // Get the configuration information from SimpleSAMLphp.
@@ -225,6 +241,11 @@ function _drupalauth4ssp_get_current_route() : ?string {
  * Returns the SimpleSAMLphp configuration.
  *
  * @todo Convert to service?
+ *
+ * @throws \Exception
+ *   Thrown if something is wrong with the authentication source configuration.
+ * @throws \SimpleSAML\Error\CriticalConfigurationError
+ *   Thrown if something is wrong with the simpleSAMLphp configuration.
  */
 function _drupalauth4ssp_get_simplesamlphp_config() {
   $config = NULL;
