@@ -12,8 +12,8 @@ use Drupal\drupalauth4ssp\Helper\TimeHelpers;
  * Represents a persistent storage system for unique expirable keys.
  *
  * Allows one to store in request-persistent storage a set of keys, all of which
- * are unique within for a given store ID. Optionally, each key may have an
- * expiry time. This key store ensures that, if some combination of the
+ * are unique for for a given store ID. Optionally, each key may have an expiry
+ * time. This key store ensures that, if some combination of the
  * tryPutKey($key, $expiry), tryTakeKey($key), and cleanupGarbage() operations
  * are executed by multiple requests with the same $key (even if these requests
  * execute these methods nearly simultaneously), at any point in time the return
@@ -27,8 +27,9 @@ use Drupal\drupalauth4ssp\Helper\TimeHelpers;
  * In order to make the guarantees given above, it is necessary that the MySQL
  * database be used as the main Drupal database, and that the InnoDB storage
  * engine be used for the key store tables associated with this key store. This
- * class performs checks to ensure these conditions are met, but it ultimately
- * the responsibility of the user of this module to verify these conditions.
+ * class performs runtime checks to ensure these conditions are met, but it is
+ * ultimately the responsibility of the user of this module to verify these
+ * conditions.
  */
 class UniqueExpirableKeyStore implements GarbageCollectableInterface {
 
@@ -44,7 +45,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
 
   /**
    * Maximum length of store IDs.
-  */
+   */
   public const MAX_STORE_ID_LENGTH = 100;
 
   /**
@@ -98,6 +99,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *   Thrown if it could not be verified that the table represented by
    *   $tableName uses InnoDB as its storage engine.
    * @throws \RuntimeException
+   *   Thrown if corruption is detected in the database.
+   * @throws \RuntimeException
    *   Thrown if the size of a PHP integer on this platform is not at least four
    *   bytes (such a size is needed to ensure Unix timestamps can be accurately
    *   represented).
@@ -138,6 +141,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * @throws \RuntimeException
    *   Thrown if it could not be verified that the table represented by
    *   $tableName uses InnoDB as its storage engine.
+   * @throws \RuntimeException
+   *   Thrown if corruption is detected in the database.
    * @throws \Drupal\Core\Database\DatabaseExceptionWrapper
    *   Thrown if a database error occurs.
    */
@@ -187,8 +192,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *   Thrown if $expiryTime is less than $_SERVER['REQUEST_TIME'], if it is
    *   available, or otherwise if it is less than time().
    * @throws \RuntimeException
-   *   Thrown if type of database associated with $databaseConnection not set to
-   *   MySQL.
+   *   Thrown if type of database associated with $databaseConnection is not set
+   *   to MySQL.
    * @throws \RuntimeException
    *   Thrown if the database driver indicates it doesn't support transactions.
    * @throws \RuntimeException
@@ -236,7 +241,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
         $couldInsertOrUpdateKeyRecord = TRUE;
       }
       else {
-        // Try to grab the expiry field from the *next* record.
+        // Try to grab the 'expiry' field from the *next* record.
         $secondRecordExpiry = $result->fetchField(0);
         if ($secondRecordExpiry !== FALSE) {
           // This shouldn't happen -- we should only get one or zero records
@@ -271,7 +276,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *
    * This method behaves in one of the following ways:
    * 1) If a non-expired key $key exists for the current store ID, this method
-   * returns TRUE and the record corresponding to that key/store ID combination
+   * returns TRUE, and the record corresponding to that key/store ID combination
    * is deleted.
    * 2) If an expired key $key exists for the current store ID, this method
    * returns FALSE and the record corresponding to that key/store ID combination
@@ -330,7 +335,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
         $couldDeleteKeyRecord = FALSE;
       }
       else {
-        // Try to grab the expiry field from the *next* record.
+        // Try to grab the 'expiry' field from the *next* record.
         $secondRecordExpiry = $result->fetchField(0);
         if ($secondRecordExpiry !== FALSE) {
           // This shouldn't happen -- we should only get one or zero records
@@ -341,7 +346,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
         // We're good -- exactly one record was returned.
         // Check to see if the key has expired.
         if ((int) $existingRecordExpiry < TimeHelpers::getCurrentTime()) {
-          // Key has expired -- we won't delete it.
+          // Key has expired -- we won't delete it, but return 'FALSE'.
           $couldDeleteKeyRecord = FALSE;
         }
         else {
@@ -375,6 +380,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * @throws \RuntimeException
    *   Thrown if it could not be verified that the table represented by
    *   $tableName uses InnoDB as its storage engine.
+   * @throws \RuntimeException
+   *   Thrown if corruption is detected in the database.
    */
   protected function checkDatabaseAndStorageEngine() : void {
     // Check database type.
@@ -428,20 +435,29 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *   Thrown if a database error occurs.
    */
   protected function executeDatabaseTransaction(callable $transactionExecution) {
-    // Set the appropriate transaction isolation level.
-    $this->setAppropriateTransactionIsolationLevel();
     // Start the transaction, and repeat for up to TRANSACTION_REPEAT_COUNT
     // times if the transaction deadlocks.
     $canExecuteTransaction = TRUE;
     for ($i = 0; $i < static::TRANSACTION_REPEAT_COUNT; $i++) {
+      // Set the appropriate transaction isolation level.
+      $this->setAppropriateTransactionIsolationLevel();
+      // Start the transaction.
       $transaction = $this->databaseConnection->startTransaction();
       try {
         // Execute transaction code.
         $transactionExecution();
+        // Unset transaction explicitly to force transaction commit.
+        unset($transaction);
         // Return to caller -- transaction is finished.
         return;
       }
       catch (DatabaseExceptionWrapper $e) {
+        // Rollback transaction (should happen automatically for a 1213 MySQL
+        // error code, but we do it here no matter what just to be safe).
+        if (isset($transaction)) {
+          $transaction->rollBack;
+        }
+
         // Grab the inner PDO exception.
         $pdoException = $e->getPrevious();
         assert(isset($pdoException) && is_object($pdoException) && $pdoException instanceof \PDOException);
@@ -449,44 +465,30 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
         // Check the MySQL error code -- if it corresponds to a detected
         // deadlock state (1213), or a lock acquire timeout (1205), let the
         // transaction be retried, as both those codes could be caused by
-        // deadlocks. Otherwise, rollback the transaction and rethrow the
-        // exception.
+        // deadlocks. Otherwise, rethrow the exception.
         $mysqlErrorCode = (string) $pdoException->errorInfo[1];
-        if ($mysqlErrorCode === '1205') {
-          // Rollback is not automatic for a 1205 (only one statement is rolled
-          // back), so we do it here.
-          $transaction->rollback();
-        }
-        else if ($mysqlErrorCode !== '1213') {
-          // Non-deadlock error = rollback and rethrow.
-          $transaction->rollBack();
+        if ($mysqlErrorCode !== '1205' && $mysqlErrorCode !== '1213') {
           throw $e;
         }
       }
       catch (\Throwable $e) {
         // Rollback and rethrow.
-        $transaction->rollBack();
+        if (isset($transaction)) {
+          $transaction->rollBack;
+        }
         throw $e;
-      }
-      finally {
-        // Unset transaction explicitly to force transaction commit if needed.
-        unset($transaction);
       }
     }
 
     // If we got this far, we must have retried TRANSACTION_REPEAT_COUNT times
     // and still encountered a deadlock. We'll just fail, in this case...
-    // Also, roll back the transaction if the error code does not indicate it
-    // has automatically been rolled back (rollback should happen for a 1213,
-    // but not necessarily for a 1205).
-    assert(isset($e));
-    $errorCode = (string) $e->errorInfo[1];
-    assert($errorCode === '1205' || $errorCode === '1213');
-    if ($errorCode !== '1213') {
-      $transaction->rollBack();
+    // Also, roll back the transaction.
+    if (isset($transaction)) {
+      $transaction->rollBack;
     }
 
     // Throw the deadlock exception.
+    assert(isset($e));
     throw $e;
   }
 
