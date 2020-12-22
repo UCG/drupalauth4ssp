@@ -16,9 +16,9 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * Ensures single-logout is initiated (if applicable) for non-SSO logout routes.
  *
  * Normally, logging out through the default route ('user.logout') will not
- * initiate single logout. Hence, we subscribe to the kernel.response event in
- * order to ensure all of this done when the user navigates to user.logout,
- * provided there is an SSP session.
+ * initiate single logout. Hence, we subscribe to the 'kernel.response' event in
+ * order to ensure this is done when the user navigates to user.logout, provided
+ * there is an SSP session.
  */
 class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
 
@@ -37,7 +37,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
   protected $cacheKillSwitch;
 
   /**
-   * The request stack.
+   * Request stack.
    *
    * @var \Symfony\Component\HttpFoundation\RequestStack
    */
@@ -108,8 +108,13 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
     if (!$this->account->isAnonymous()) {
       return;
     }
+
     // See if our handler of hook_user_logout set a flag indicating we should
-    // proceed.
+    // proceed. We only want to initiate SSP login as part of the normal logout
+    // process associated with the user.logout route -- so we check to ensure
+    // this variable is set properly as a sanity check (if this variable were
+    // not set properly, hook_user_logout would not have been invoked properly,
+    // so something is abnormal about the logout process).
     $shouldInitiateLogout = &drupal_static('drupalauth4ssp_var_shouldInitiateSspLogout');
     if (!isset($shouldInitiateLogout) || !$shouldInitiateLogout) {
       return;
@@ -130,7 +135,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
       drupalauth4ssp_unset_user_cookie();
       // Build the single logout URL.
       $singleLogoutUrl = UrlHelpers::generateSloUrl($masterRequest->getHost(), $returnUrl);
-      // Redirect to the single logout URL
+      // Redirect to the single logout URL.
       $event->setResponse(new RedirectResponse($singleLogoutUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
     }
   }

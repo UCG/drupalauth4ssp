@@ -6,7 +6,7 @@ use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 
 /**
- * Configure DrupalAuth for SimpleSAMLphp settings for this site.
+ * Form to configure DrupalAuth for SimpleSAMLphp settings for this site.
  */
 class SettingsForm extends ConfigFormBase {
 

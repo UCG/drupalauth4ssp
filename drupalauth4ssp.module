@@ -21,7 +21,7 @@ use SimpleSAML\Configuration;
  * Implements hook_cron.
  */
 function drupalauth4ssp_cron() {
-  // Run garbage clean up for the two unique key store services.
+  // Run garbage cleanup for the two unique key store services.
   $servicesToCleanup = ['drupalauth4ssp.nonce_collision_store', 'drupalauth4ssp.used_nonce_store'];
 
   foreach ($servicesToCleanup as $serviceName) {
@@ -116,10 +116,10 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) : void {
   // following format:
   // [cookie message]:[HMAC of cookie message]
   // where:
-  // [cookie message] = [user ID].[expiry].[nonce]
+  // [cookie message] = [user ID]:[expiry]:[nonce]
   // The HMAC (hashed message authentication code) is a shared-key digital
-  // signature that verifies the authenticity of the message; the receiver
-  // of the cookie can check to sure the HMAC was generated using the cookie
+  // signature that verifies the authenticity of the message: the receiver
+  // of the cookie can check to be sure the HMAC was generated using the cookie
   // message and a particular key (the key is generated from the Drupal
   // 'private_key' service and the simpleSAMLphp secret salt).
   // The cookie message contains the user ID (as you would expect), as well as
@@ -128,25 +128,27 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) : void {
   // someone re-uses the same cookie twice to log in without re-authentication.
   // The expiry time ensures that, first of all, the cookie can only be used for
   // a short time. The nonce, a key which is guaranteed not to be the same as
-  // any key generated thereafter but before the 'expiry' time, provides the
-  // replay attack permission -- once this nonce is used, it is added to a
-  // server-side cache which prevents re-use until (possibly) the expiry time
-  // (after which the cookie is useless anyway).
+  // any key generated thereafter but before the 'expiry' time, provides replay
+  // attack protection -- once this nonce is used, it is added to a server-side
+  // cache which prevents re-use until (possibly) the expiry time (after which
+  // the cookie is useless anyway).
   //
   // We store nonces in two locations on the server. The first nonce store,
   // represented by the 'drupalauth4ssp.nonce_collision_store' service, is used
   // to ensure we don't accidentally generate a nonce which has already been
-  // generated in the duration corresponding to the expiry times we set. Nonces
-  // in this storage mechanism are set to expire at a time equal to the expiry
-  // time stored in the second nonce store for this nonce (described below), and
-  // are added at the time we generate the cookie (below).
-  // The second nonce store, represented by the
+  // generated in the last 'x' seconds, where 'x' is the duration used to
+  // generate the expiry times stored in the nonce cookies (plus a fudge factor,
+  // for a safety measure). Nonces in this store are set to expire at a time
+  // equal to the expiry time stored in the second nonce store for this nonce
+  // (described below), and are added at the time we generate the cookie
+  // (below). The second nonce store, represented by the
   // 'drupalauth4ssp.used_nonce_store' service, is used to ensure we don't reuse
   // a non-expired nonce. Every time a nonce is used, it is added to this store,
-  // and set to expire at the time of the expiry of the nonce (plus a fudge
-  // factor, for a safety measure). On the simpleSAMLphp side, we check to
-  // ensure a nonce in a cookie isn't in this store before we allow it to be
-  // used (in addition to checking to ensure that the cookie's expiry time
+  // and set to expire at the time of the expiry of the nonce (plus the same
+  // fudge factor used in the first nonce store above). On the simpleSAMLphp
+  // side, with a patched version of the drupalauth simpleSAMLphp module, we
+  // check to ensure a nonce in a cookie isn't in this store before we allow it
+  // to be used (in addition to checking to ensure that the cookie's expiry time
   // hasn't been reached).
 
   // Grab the nonce storage object.
@@ -201,7 +203,7 @@ function drupalauth4ssp_set_user_cookie(AccountInterface $account) : void {
  *   Thrown if something is wrong with the simpleSAMLphp configuration.
  */
 function drupalauth4ssp_unset_user_cookie() {
-  // Get the configuration information from SimpleSAMLphp.
+  // Get the configuration information from simpleSAMLphp.
   $ssp_config = _drupalauth4ssp_get_simplesamlphp_config();
 
   // If we don't have configuration, exit without doing anything.
@@ -220,7 +222,7 @@ function drupalauth4ssp_unset_user_cookie() {
  * Sets redirect upon successful login.
  */
 function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state) {
-  // If the ReturnTo URL is okay, send the user to the URL.
+  // If the 'ReturnTo' URL is okay, send the user to that URL.
   $urlHelper = \Drupal::service('drupalauth4ssp.url_helper');
   if ($urlHelper->isReturnToUrlValid()) {
     $form_state->setRedirectUrl(Url::fromUri($urlHelper->getReturnToUrl()));
@@ -238,7 +240,7 @@ function _drupalauth4ssp_get_current_route() : ?string {
 }
 
 /**
- * Returns the SimpleSAMLphp configuration.
+ * Returns the simpleSAMLphp configuration.
  *
  * @todo Convert to service?
  *
@@ -300,7 +302,7 @@ function _drupalauth4ssp_is_current_route_normal_logout_route() : bool {
  * Checks to see if the current route is the SP-initiated SSO login route.
  *
  * @return bool
- *   'TRUE' if SP-initiated SSO route, else 'FALSE'.
+ *   'TRUE' if SP-initiated SSO login route, else 'FALSE'.
  */
 function _drupalauth4ssp_is_current_route_sso_login_route() : bool {
   return (_drupalauth4ssp_get_current_route() === 'drupalauth4ssp.ssoLogin') ? TRUE : FALSE;

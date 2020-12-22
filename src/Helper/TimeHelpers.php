@@ -25,7 +25,8 @@ final class TimeHelpers {
    *   Current Unix timestamp.
    * @throws \RuntimeException
    *   Thrown if the PHP integer size is not at least four bytes (this is done
-   *   to ensure PHP integers are large enough to store the current Unix).
+   *   to ensure PHP integers are large enough to store the current Unix
+   *   timestamp).
    */
   public static function getCurrentTime() : int {
     if (PHP_INT_SIZE < 4) {

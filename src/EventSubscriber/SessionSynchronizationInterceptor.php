@@ -20,13 +20,13 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * Ensures simpleSAMLphp and Drupal sessions are synchronized.
  *
  * At the beginning of the request, ensures we don't have a (non-local) Drupal
- * session without a simpleSAMLphp session, and visa versa. This ensures we
- * have a unified representation of session state on this IdP. Otherwise, we
- * might, for instance, have a simpleSAMLphp session but no associated Drupal
- * session. In this case, something like a passive login request (from an SP)
- * would succeed, even though there is no local session at the IdP. Such
- * inconsistent representation of state is confusing to the user, and should be
- * avoided.
+ * session without a corresponding simpleSAMLphp session, and visa versa. This
+ * ensures we have a unified representation of session state on this IdP.
+ * Otherwise, we might, for instance, have a simpleSAMLphp session but no
+ * associated Drupal session. In this case, something like a passive login
+ * request (from an SP) would succeed, even though there is no local Drupal
+ * session at the IdP. Such inconsistent representation of state is confusing to
+ * the user, and should be avoided.
  */
 class SessionSynchronizationInterceptor implements EventSubscriberInterface {
 
@@ -80,7 +80,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
   protected $userValidator;
 
     /**
-   * Creates a login route interceptor instance.
+   * Creates a session synchronization interceptor instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
@@ -140,10 +140,10 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
   }
 
   /**
-   * Ensures Drupal session is synchronized with simpleSAMLphp session.
+   * Ensures Drupal session is synchronized with the simpleSAMLphp session.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
-   *   Request that triggered this synchronization.
+   *   Request that triggered this synchronization attempt.
    * @return void
    * @throws
    *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
@@ -176,15 +176,15 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
         return;
       }
 
-      // Attempt to log the user in.
+      // Attempt to log the newly loaded user in.
       // Taken from src/UserSwitch.php from "Switch User" Drupal contrib mod.
       $this->sessionManager->regenerate();
       $this->account->setAccount($user);
       $this->session->set('uid', $user->id());
 
       // Attempt to reload the user, to see if it still exists. If it existed
-      // before, but was deleted in between when we loaded in earlier and now,
-      // we don't want to be logged in. Also check to ensure the user is still
+      // before, but was deleted in between when we loaded it earlier and now,
+      // we don't want to be logged in. Also, check to ensure the user is still
       // an SSO-enabled user.
       $user = $userStorage->load($uid);
       if (!$user || !$this->userValidator->isUserValid($user)) {
@@ -198,12 +198,12 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
         $event->setResponse(new RedirectResponse($sloUrl, HttpHelpers::getAppropriateTemporaryRedirect($request->getMethod())));
       }
       else {
-        //Finish the login process
+        // If the user's valid, just finish the login process.
         $this->moduleHandler->invokeAll('user_login', [$user]);
       }
     }
     else {
-      // Log user out if logged in as non-local user.
+      // No SSP session, so log user out if logged in as non-local user.
       if (!$this->account->isAnonymous()) {
         // Check user validity -- if invalid (i.e., non-SSO user), don't log
         // user out; otherwise, do.

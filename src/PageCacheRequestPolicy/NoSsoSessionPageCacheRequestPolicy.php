@@ -8,6 +8,10 @@ use Drupal\Core\PageCache\RequestPolicyInterface;
 
 /**
  * Policy to prevent page cache fetch if there is a simpleSAMLphp SSO session.
+ *
+ * If there is an active simpleSAMLphp session, the page cache should be used.
+ * This is because our session synchronization code could convert this
+ * simpleSAMLphp session to an associated Drupal session.
  */
 class NoSsoSessionPageCacheRequestPolicy implements RequestPolicyInterface {
 

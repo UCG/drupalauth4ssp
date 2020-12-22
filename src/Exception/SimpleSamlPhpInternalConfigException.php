@@ -18,7 +18,7 @@ class SimpleSamlPhpInternalConfigException extends SimpleSamlPhpInternalExceptio
    * Creates a new SimpleSamlPhpInternalConfigException object.
    *
    * @param string|NULL $message
-   * Message pertaining to exception; can be null or an empty string, in which
+   * Message pertaining to exception; can be NULL or an empty string, in which
    * case a default message is used.
    * @param int $code
    *   Exception code.

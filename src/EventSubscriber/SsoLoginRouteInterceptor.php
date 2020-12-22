@@ -16,12 +16,16 @@ use Symfony\Component\HttpKernel\KernelEvents;
 /**
  * Handles SSO log in route when user is already logged in.
  *
- * Here, for the 'drupalauth4ssp.ssoLogin' route, we check to see if the current
+ * When the user is already logged in, visiting the drupalauth4ssp.ssoLogin
+ * route should not bring up the normal login screen or initiate the normal
+ * login process. Instead, for such cases, we check to see if the current Drupal
  * user is a valid (SSO-enabled) user, and, if so, set the appropriate user
- * cookie (for the drupalauth simpleSAMLphp module). Also redirects the user to
- * finish the SSO login process. If we did not do this, if we happened to be
- * logged in to Drupal but not to simpleSAMLphp, SP-initiated SSO would fail
- * (even though there is a valid Drupal session at the IdP).
+ * cookie (for the drupalauth simpleSAMLphp module) and redirect the user
+ * appropriately -- just as would happen if the user logged in by visiting the
+ * drupalauth4ssp.ssoLogin route and filling out the login form. If we did not
+ * do this, if we happened to be logged in to Drupal but not to simpleSAMLphp,
+ * SP-initiated SSO would fail (even though there is a valid Drupal session at
+ * the IdP).
  */
 class SsoLoginRouteInterceptor implements EventSubscriberInterface {
 
@@ -40,7 +44,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
   protected $entityTypeManager;
 
   /**
-   * The request stack.
+   * Request stack.
    *
    * @var \Symfony\Component\HttpFoundation\RequestStack
    */
@@ -88,7 +92,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
    * If we are on the SSO login route, checks to see if user is already logged
    * in. If so, checks if current user can be used to perform simpleSAMLphp
    * login. If so, sets drupalauth4ssp user ID cookie appropriately. Then issues
-   * redirect (if not already logged in).
+   * redirect.
    *
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   The request event to which we have subscribed.
@@ -118,11 +122,12 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
 
     $masterRequest = $this->requestStack->getMasterRequest();
 
-    // Otherwise, check to see if we are allowed to perform SSO login.
+    // Otherwise, check to see if current user is an SSO user.
     if ($this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
-      // We have an SSO-enabled user! We will have to try to pass on his ID.
+      // We have an SSO-enabled user! We will have to try to pass on his ID to
+      // the drupalauth simpleSAMLphp module.
       drupalauth4ssp_set_user_cookie($this->account);
-      // Now, redirect the user to the 'ReturnTo' URL if possible.
+      // Next, redirect the user to the 'ReturnTo' URL if possible.
       if ($this->urlHelper->isReturnToUrlValid()) {
         $event->setResponse(new RedirectResponse($this->urlHelper->getReturnToUrl(), HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
       }

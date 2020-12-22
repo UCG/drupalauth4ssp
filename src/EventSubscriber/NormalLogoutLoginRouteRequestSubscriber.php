@@ -14,14 +14,17 @@ use Symfony\Component\HttpKernel\KernelEvents;
 /**
  * Ensures (un)authenticated users are redirected approp. on logout (login).
  *
- * This is necessary for logout routes because some browsers sometimes issue
- * multiple nearly concurrent GET requests for a resource. In order to ensure we
- * support such browsers cleanly, we redirect authenticated users appropriately
- * on logout routes, instead of issuing a 403 (the default behavior). This is to
- * ensure that, for instance, if multiple requests are issued for a logout, the
- * user isn't shown a 403, since, for one of those requests, the user had
- * already been logged out for one of the other requests. We perform this for
- * login routes to obtain behavior similar to that on the service providers.
+ * Some browsers sometimes issue multiple GET requests for a resource. In order
+ * to ensure we support such browsers cleanly, we redirect unauthenticated users
+ * appropriately on user.logout routes, and authenticated users appropriately on
+ * user.login routes, in the same way we would redirect authenticated and
+ * unauthenticated users, respectively. This is to ensure that, if multiple
+ * logout/login requests are issued at nearly the same time, the user receives
+ * the same behavior as when only one request is issued. We do this because,
+ * taking as an example two requests issued for the user.logout route at nearly
+ * the same time, one of these requests might be issued by an unauthenticated
+ * user, because one request might log the user out before the other request is
+ * initiated.
  */
 class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterface {
 
@@ -33,7 +36,7 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
   protected $account;
 
   /**
-   * The request stack.
+   * Request stack.
    *
    * @var \Symfony\Component\HttpFoundation\RequestStack
    */

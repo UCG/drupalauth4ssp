@@ -19,7 +19,7 @@ final class HttpHelpers {
   }
 
   /**
-   * Determines the redirect code to use for a temporary/see other redirect.
+   * Determines the redirect code to use for a temporary/"see other" redirect.
    *
    * Although a 302 response code is often used for most non-permanent
    * redirects, it is often appropriate to use a 303 redirect if the request

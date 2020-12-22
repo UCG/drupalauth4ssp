@@ -17,14 +17,14 @@ final class StringHelpers {
   }
 
   /**
-   * Get $str or a default message if $str is null or empty.
+   * Get $str or a default message if $str is NULL or empty.
    *
-   * If $str is null or empty, returns $defaultMessage; else, returns $str.
+   * If $str is NULL or empty, returns $defaultMessage; else, returns $str.
    *
    * @param string|NULL $str
    *   String to check / return if possible.
    * @param string|NULL $defaultMessage
-   *   Default message if $str is 'NULL' or empty.
+   *   Default message if $str is NULL or empty.
    * @return string|NULL
    */
   static function getValueOrDefault(?string $str, ?string $defaultMessage) : ?string {
@@ -32,7 +32,7 @@ final class StringHelpers {
   }
 
   /**
-   * Checks if $str is either 'NULL or an empty string.
+   * Checks if $str is either 'NULL' or an empty string.
    *
    * @param string|NULL $str
    *   String to check.

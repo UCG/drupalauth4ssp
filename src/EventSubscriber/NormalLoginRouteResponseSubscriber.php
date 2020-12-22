@@ -22,9 +22,9 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * session whenever the user logs in to an SSO-enabled account, this subscriber
  * intercepts these login requests just before the response is sent. If
  * necessary, this subscriber performs simpleSAMLphp authentication with the
- * 'ReturnTo' parameter set to appropriately (to the referrer if possible).
- * If no SSP authentication is necessary, the subscriber simply redirects to an
- * appropriate destination.
+ * 'ReturnTo' parameter set appropriately (to the home page). If no SSP
+ * authentication is necessary, this subscriber simply redirects to the home
+ * page if appropriate (see the event handler method herein).
  */
 class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
 
@@ -50,7 +50,7 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
   protected $entityTypeManager;
 
   /**
-   * The request stack.
+   * Request stack.
    *
    * @var \Symfony\Component\HttpFoundation\RequestStack
    */
@@ -98,7 +98,7 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
   /**
    * Handles response event for standard login routes.
    *
-   * Notes: If simpleSAMLphp authentication is required, this method doesn't
+   * Notes: If simpleSAMLphp authentication is initiated, this method doesn't
    * return.
    *
    * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
@@ -120,7 +120,7 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
     $this->cacheKillSwitch->trigger();
 
     // If this response was generated because of an exception, we don't
-    // typically want to mess with things. The one exception is the
+    // typically want to mess with things. The one exception to this rule is the
     // \Drupal\Core\Form\EnforcedResponseException exception -- this exception
     // is used for flow control by Drupal's form system, rather than for error
     // handling, so it is okay to ignore it.
@@ -133,7 +133,11 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
       return;
     }
     // See if our handler of hook_user_login set a flag indicating we should
-    // proceed.
+    // proceed. We only want to initiate SSP login as part of the normal login
+    // process associated with the user.login route -- so we check to ensure
+    // this variable is set properly as a sanity check (if this variable were
+    // not set properly, hook_user_login would not have been invoked properly,
+    // so something is abnormal about the login process).
     $shouldInitiateLogin = &drupal_static('drupalauth4ssp_var_shouldInitiateSspLogin');
     if (!isset($shouldInitiateLogin) || !$shouldInitiateLogin) {
       return;
@@ -144,8 +148,8 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
 
     $masterRequest = $this->requestStack->getMasterRequest();
 
-    // If user isn't SSO-enabled, initiate redirect to $returnUrl for the sake
-    // of consistency.
+    // If user isn't SSO-enabled, initiate redirect to $returnUrl anyway for the
+    // sake of consistency.
     if (!$this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
       $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
       return;

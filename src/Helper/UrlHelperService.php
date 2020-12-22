@@ -89,7 +89,7 @@ class UrlHelperService {
       return $this->pathValidator->isValid($url) && UrlHelper::externalIsLocal($url, $base_url);
     }
     catch (\InvalidArgumentException $ex) {
-      // Swallow this exception, as we know then that $url isn't valid.
+      // Swallow this exception, as we know now that $url isn't valid.
       return FALSE;
     }
   }

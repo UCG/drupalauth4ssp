@@ -10,8 +10,10 @@ use Drupal\Core\Routing\RouteSubscriberBase;
  * Modifies login and logout routes appropriately.
  *
  * Modifies user.login and user.logout routes so that they are accessible to
- * authenticated/unauthenticated users, respectively. For the reasons behind
- * these changes, @see
+ * authenticated/unauthenticated users, respectively. This is to ensure the
+ * behavior for these routes, in terms of what page a user accessing such a
+ * route is redirected to, is consistent between authenticated and
+ * unauthenticated users. For the reasons such consitency is important, @see
  * \Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutLoginRouteRequestSubscriber.
  */
 class LoginLogoutRouteModifierSubscriber extends RouteSubscriberBase {

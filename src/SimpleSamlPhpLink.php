@@ -18,7 +18,8 @@ use SimpleSAML\Session;
  * All information related to the simpleSAMLphp session is cached after being
  * accessed once. This prevents "race" conditions where the simpleSAMLphp
  * session expires during the request, which could make the methods in this
- * class return undefined values if nothing was cached.
+ * class return undefined values if nothing was cached (even if a previous call
+ * to SimpleSamlPhpLink::isAuthenticated() returned 'TRUE').
  */
 class SimpleSamlPhpLink {
 
@@ -36,7 +37,8 @@ class SimpleSamlPhpLink {
    */
   protected $configuration;
 
-  /** 'TRUE' if there was a valid simpleSAMLphp session when property set.
+  /**
+   * 'TRUE' if there was valid simpleSAMLphp session when this property was set.
    *
    * @var bool
    */
@@ -64,10 +66,8 @@ class SimpleSamlPhpLink {
    *
    * @param string $attribute
    *   The name of the attribute to retrieve.
-   *
    * @return mixed
    *   The attribute value.
-   *
    * @throws \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpAttributeException
    *   Exception when attribute is not set.
    * @throws
@@ -116,7 +116,7 @@ class SimpleSamlPhpLink {
   public function initiateAuthenticationIfNecessary(string $returnUrl) : void {
     $this->prepareSimpleSamlStuff();
 
-    // Go ahead and forward to the IdP for login.
+    // Go ahead and forward to the IdP for login, if not already logged in.
     $this->simpleSaml->requireAuth(['ReturnTo' => $returnUrl, 'KeepPost' => 'FALSE']);
   }
 
@@ -130,8 +130,7 @@ class SimpleSamlPhpLink {
    *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    * @throws \Exception
-   *   Something went wrong when attempting to obtain simpleSAMLphp session
-   *   information.
+   *   Something went wrong when attempting to obtain simpleSAMLphp session.
    */
   public function invalidateSession() {
     $this->prepareSimpleSamlStuff();
@@ -170,7 +169,7 @@ class SimpleSamlPhpLink {
   }
 
   /**
-   * Checks to ensure the simpleSAMLphp session storage type is valid. 
+   * Checks to ensure the simpleSAMLphp session storage type is valid.
    *
    * This method ensures the storage type is not set to 'phpsession'). Throws an
    * exception if the session storage type could not be determined to be valid.
@@ -243,8 +242,10 @@ class SimpleSamlPhpLink {
       if ($wasAuthenticated && !$this->simpleSaml->isAuthenticated()) {
         // If the session has expired since acquiring attributes, clear the
         // attributes we acquired and set a flag indicated the SSP session is no
-        // more. We don't want to associate attributes with a session that has
-        // closed.
+        // more. We do this to ensure that we don't declare there to be a
+        // simpleSAMLphp while some of the attributes we gathered are unset or
+        // invalid, because the session expired while or just before these
+        // attributes were being acquired.
         $this->attributes = [];
         $this->isLoggedIn = FALSE;
       }

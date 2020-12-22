@@ -24,7 +24,7 @@ final class UrlHelpers {
    * @param string $hostname
    *   Host name to use.
    * @return string
-   *   Single logout URL
+   *   Single logout URL.
    * @throws \InvalidArgumentException
    *   $returnToUrl or $hostname is empty().
    */

@@ -25,7 +25,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
   protected $account;
 
   /**
-   * The request stack.
+   * Request stack.
    *
    * @var \Symfony\Component\HttpFoundation\RequestStack
    */
@@ -74,9 +74,9 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
     // Clear the drupalauth4ssp cookie.
     drupalauth4ssp_unset_user_cookie();
 
-    // Attempt to redirect, if possible (if the return URL parameter isn't
-    // empty and is allowed) to the return URL query string parameter.
-    // Otherwise, redirect to the home page.
+    // Attempt to redirect, if possible (if the return URL parameter is valid
+    // and local) to the return URL query string parameter. Otherwise, redirect
+    // to the home page.
     $masterRequest = $this->requestStack->getMasterRequest();
     if ($this->urlHelper->isReturnToUrlValid()) {
       return new RedirectResponse($this->urlHelper->getReturnToUrl(), HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod()));
