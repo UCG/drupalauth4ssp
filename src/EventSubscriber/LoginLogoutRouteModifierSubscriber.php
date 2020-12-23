@@ -24,14 +24,14 @@ class LoginLogoutRouteModifierSubscriber extends RouteSubscriberBase {
   protected function alterRoutes($collection) {
     // First, modify the user.login route.
     $loginRoute = $collection->get('user.login');
-    if ($loginRoute) {
+    if (!empty($loginRoute)) {
       // If the route is defined, ensure anyone can access it.
       $loginRoute->setRequirements(['_access' => 'TRUE']);
     }
 
     // Next, modify the user.logout route.
     $logoutRoute = $collection->get('user.logout');
-    if ($logoutRoute) {
+    if (!empty($logoutRoute)) {
       // If the route is defined, ensure anyone can access this route.
       $logoutRoute->setRequirements(['_access' => 'TRUE']);
     }

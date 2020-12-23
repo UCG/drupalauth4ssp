@@ -133,7 +133,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
       }
       else {
         // Return 403.
-        throw new AccessDeniedHttpException('Cannot access SSO login route from authenticated user without return URL.');
+        throw new AccessDeniedHttpException('Cannot access SSO login route from authenticated user without valid return URL.');
       }
     }
     else {

@@ -129,8 +129,9 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
   /**
    * Gets rid of expired keys for the store ID assocated with this object.
    *
-   * To determine if a key has expired, the expiry time is compared with
-   * $_SERVER['REQUEST_TIME'], if it is available, or otherwise with time().
+   * A key is determined to be expired if its expiry time is less than
+   * $_SERVER['REQUEST_TIME'], if it is available, or otherwise less than
+   * time().
    *
    * @return void
    * @throws \RuntimeException
@@ -172,8 +173,9 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * returns TRUE, and $key is inserted into the storage table, together with
    * the expiry time $expiryTime.
    *
-   * To determine if a key has expired, $expiryTime is compared with
-   * $_SERVER['REQUEST_TIME'], if it is available, or otherwise with time().
+   * A key is determined to be expired if its expiry time is less than
+   * $_SERVER['REQUEST_TIME'], if it is available, or otherwise less than
+   * time().
    *
    * @param string $key
    *   Key to attempt to insert (max size = MAX_KEY_LENGTH).
@@ -252,7 +254,8 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
         // We're good -- exactly one record was returned.
         // Check to see if the key has expired.
         if ((int) $existingRecordExpiry < $currentTime) {
-          // Go ahead and update record with new expiry time.
+          // The key has expired. Go ahead and update record with new expiry
+          // time.
           $this->databaseConnection->update($this->tableName)
             ->fields(['expiry' => $expiryTime])
             ->condition('key', $key, '=')
@@ -284,8 +287,9 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * 3) If the key $key does not exist for the current store ID, this method
    * returns FALSE.
    *
-   * To determine if a key has expired, $expiryTime is compared with
-   * $_SERVER['REQUEST_TIME'], if it is available, or otherwise with time().
+   * A key is determined to be expired if its expiry time is less than
+   * $_SERVER['REQUEST_TIME'], if it is available, or otherwise less than
+   * time().
    *
    * @param string $key
    *   Key to attempt to take (max size = MAX_KEY_LENGTH).
@@ -346,7 +350,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
         // We're good -- exactly one record was returned.
         // Check to see if the key has expired.
         if ((int) $existingRecordExpiry < TimeHelpers::getCurrentTime()) {
-          // Key has expired -- we won't delete it, but return 'FALSE'.
+          // Key has expired -- we won't delete it, but we do return 'FALSE'.
           $couldDeleteKeyRecord = FALSE;
         }
         else {
@@ -437,7 +441,6 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
   protected function executeDatabaseTransaction(callable $transactionExecution) {
     // Start the transaction, and repeat for up to TRANSACTION_REPEAT_COUNT
     // times if the transaction deadlocks.
-    $canExecuteTransaction = TRUE;
     for ($i = 0; $i < static::TRANSACTION_REPEAT_COUNT; $i++) {
       // Set the appropriate transaction isolation level.
       $this->setAppropriateTransactionIsolationLevel();
