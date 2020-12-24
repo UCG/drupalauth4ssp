@@ -100,6 +100,7 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    *
    * Notes: If simpleSAMLphp authentication is initiated, this method doesn't
    * return.
+   * @todo Switch for Drupal 9 from using deprecated FilterResponseEvent.
    *
    * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
    *   Response event.

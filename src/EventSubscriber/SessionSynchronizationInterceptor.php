@@ -6,7 +6,7 @@ namespace Drupal\drupalauth4ssp\EventSubscriber;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\SessionManagerInterface;
 use Drupal\drupalauth4ssp\Constants;
 use Drupal\drupalauth4ssp\Helper\HttpHelpers;
@@ -31,11 +31,11 @@ use Symfony\Component\HttpKernel\KernelEvents;
 class SessionSynchronizationInterceptor implements EventSubscriberInterface {
 
   /**
-   * Account.
+   * Account proxy.
    *
-   * @var \Drupal\Core\Session\AccountInterface
+   * @var \Drupal\Core\Session\AccountProxyInterface
    */
-  protected $account;
+  protected $accountProxy;
 
   /**
    * Entity type manager.
@@ -82,8 +82,8 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
   /**
    * Creates a session synchronization interceptor instance.
    *
-   * @param \Drupal\Core\Session\AccountInterface $account
-   *   Account.
+   * @param \Drupal\Core\Session\AccountProxyInterface $accountProxy
+   *   Account proxy.
    * @param \Drupal\drupalauth4ssp\UserValidatorInterface $userValidator
    *   User validator.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
@@ -97,14 +97,14 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
    *   Service to interact with simpleSAMLphp.
    */
-  public function __construct(AccountInterface $account,
+  public function __construct(AccountInterface $accountProxy,
     UserValidatorInterface $userValidator,
     EntityTypeManagerInterface $entityTypeManager,
     ModuleHandlerInterface $moduleHandler,
     SessionManagerInterface $sessionManager,
     $session,
     $sspLink) {
-    $this->account = $account;
+    $this->accountProxy = $accountProxy;
     $this->userValidator = $userValidator;
     $this->entityTypeManager = $entityTypeManager;
     $this->moduleHandler = $moduleHandler;
@@ -155,13 +155,13 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
       // Grab the user ID.
       $uid = $this->sspLink->getAttribute('uid');
       // If the two user IDs match, we're good -- the sessions are in sync.
-      if ($this->account->id() === $uid) {
+      if ($this->accountProxy->id() === $uid) {
         return;
       }
 
       // Otherwise, we'll have to sync the sessions. If we are logged in, we
       // know we're logged in as the wrong user, so log out.
-      if (!$this->account->isAnonymous()) {
+      if (!$this->accountProxy->isAnonymous()) {
         user_logout();
       }
 
@@ -179,7 +179,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
       // Attempt to log the newly loaded user in.
       // Taken from src/UserSwitch.php from "Switch User" Drupal contrib mod.
       $this->sessionManager->regenerate();
-      $this->account->setAccount($user);
+      $this->accountProxy->setAccount($user);
       $this->session->set('uid', $user->id());
 
       // Attempt to reload the user, to see if it still exists. If it existed
@@ -192,7 +192,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
         // Taken from user_logout() in Drupal core "user" module. We don't
         // invoke hook_user_logout, because we didn't finish logging in.
         $this->sessionManager->destroy();
-        $this->account->setAccount(new AnonymousUserSession());
+        $this->accountProxy->setAccount(new AnonymousUserSession());
         // Try to perform single logout.
         $sloUrl = UrlHelpers::generateSloUrl($request->getHost(), $request->getUri());
         $event->setResponse(new RedirectResponse($sloUrl, HttpHelpers::getAppropriateTemporaryRedirect($request->getMethod())));
@@ -204,10 +204,10 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
     }
     else {
       // No SSP session, so log user out if logged in as non-local user.
-      if (!$this->account->isAnonymous()) {
+      if (!$this->accountProxy->isAnonymous()) {
         // Check user validity -- if invalid (i.e., non-SSO user), don't log
         // user out; otherwise, do.
-        if ($this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
+        if ($this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->accountProxy->id()))) {
           user_logout();
         }
       }

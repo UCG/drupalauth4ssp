@@ -72,6 +72,8 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
   /**
    * Handles response event for standard logout routes.
    *
+   * @todo Change deprecated use of FilterResponseEvent.
+   *
    * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
    *   Response event.
    *

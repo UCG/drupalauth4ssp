@@ -58,6 +58,8 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
   /**
    * Handles request event for logout and login routes.
    *
+   * @todo Change deprecated use of GetResponseEvent.
+   *
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   Response event.
    */
