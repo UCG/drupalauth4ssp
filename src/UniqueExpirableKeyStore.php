@@ -86,6 +86,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * @param string $tableName
    *   Name of database underlying the key store. Defaults to the
    *   DEFAULT_TABLE_NAME constant.
+   *
    * @throws \InvalidArgumentException
    *   Thrown if $tableName or $storeId is empty.
    * @throws \InvalidArgumentException
@@ -133,7 +134,6 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    * $_SERVER['REQUEST_TIME'], if it is available, or otherwise less than
    * time().
    *
-   * @return void
    * @throws \RuntimeException
    *   Thrown if type of database associated with $databaseConnection not set to
    *   MySQL.
@@ -151,7 +151,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     // Check the validity of the database and storage engine types.
     $this->checkDatabaseAndStorageEngine();
 
-    $this->executeDatabaseTransaction(function() {
+    $this->executeDatabaseTransaction(function () {
       $currentTime = TimeHelpers::getCurrentTime();
       // Delete expired keys.
       $this->databaseConnection->delete($this->tableName)
@@ -181,9 +181,11 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *   Key to attempt to insert (max size = MAX_KEY_LENGTH).
    * @param int $expiryTime
    *   Expiry Unix time stamp.
+   *
    * @return bool
    *   'TRUE' if the key was successfully inserted or updated, else 'FALSE' (see
    *   method description above).
+   *
    * @throws \InvalidArgumentException
    *   Thrown if $key is empty.
    * @throws \InvalidArgumentException
@@ -224,7 +226,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     $this->checkDatabaseAndStorageEngine();
 
     $couldInsertOrUpdateKeyRecord = FALSE;
-    $this->executeDatabaseTransaction(function() use($key, $expiryTime, &$couldInsertOrUpdateKeyRecord) {
+    $this->executeDatabaseTransaction(function () use ($key, $expiryTime, &$couldInsertOrUpdateKeyRecord) {
       // Go ahead and lock and select the row/index corresponding to this key.
       $result = $this->databaseConnection->query('SELECT expiry FROM {' .
         $this->databaseConnection->escapeTable($this->tableName) .
@@ -293,8 +295,10 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *
    * @param string $key
    *   Key to attempt to take (max size = MAX_KEY_LENGTH).
+   *
    * @return bool
    *   Thrown if 'TRUE' if an active key existed and was deleted, else 'FALSE'.
+   *
    * @throws \InvalidArgumentException
    *   Thrown if $key is empty.
    * @throws \InvalidArgumentException
@@ -323,7 +327,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     $this->checkDatabaseAndStorageEngine();
 
     $couldDeleteKeyRecord = FALSE;
-    $this->executeDatabaseTransaction(function() use($key, &$couldDeleteKeyRecord) {
+    $this->executeDatabaseTransaction(function () use ($key, &$couldDeleteKeyRecord) {
       // Go ahead and lock and select the row/index corresponding to this key.
       $result = $this->databaseConnection->query('SELECT expiry FROM {' .
         $this->databaseConnection->escapeTable($this->tableName) .
@@ -375,7 +379,6 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *
    * Throws an exception if either condition appears not to be met.
    *
-   * @return void
    * @throws \RuntimeException
    *   Thrown if type of database associated with $databaseConnection not set to
    *   MySQL.
@@ -417,7 +420,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
     // Make sure there's not another record (should be only one table!).
     $nextRecord = $result->fetchAssoc();
     if ($nextRecord) {
-      throw new \RuntimeException(sprintf("Database misconfiguration -- there appear to be multiple unique expirable key value store tables with name '%s'.", $this-tableName));
+      throw new \RuntimeException(sprintf("Database misconfiguration -- there appear to be multiple unique expirable key value store tables with name '%s'.", $this->tableName));
     }
 
     // Check the 'Engine' field of the returned record.
@@ -434,7 +437,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
    *
    * @param callable $transactionExecution
    *   Function executing transaction statements.
-   * @return void
+   *
    * @throws \Drupal\Core\Database\DatabaseExceptionWrapper
    *   Thrown if a database error occurs.
    */
@@ -498,7 +501,6 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
   /**
    * Sets the transaction isolation level to the highest level (SERIALIZABLE).
    *
-   * @return void
    * @throws \Drupal\Core\Database\DatabaseExceptionWrapper
    *   Thrown if a database error occurs.
    */
@@ -528,7 +530,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
           'length' => static::MAX_STORE_ID_LENGTH,
           'not null' => TRUE,
           'default' => 'store',
-          'binary',
+          'binary' => TRUE,
         ],
         'key' => [
           'description' => 'Key being stored. Must be unique for a given store ID.',
@@ -536,7 +538,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
           'length' => static::MAX_KEY_LENGTH,
           'not null' => TRUE,
           'default' => 'key',
-          'binary',
+          'binary' => TRUE,
         ],
         'expiry' => [
           'description' => 'Expiry time (since Unix epoch in seconds) of key/store ID combination. Defaults to largest possible value.',
