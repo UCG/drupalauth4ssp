@@ -21,7 +21,7 @@ class UrlHelperService {
   /**
    * Request stack.
    *
-   * @var \Symfony\Component\HttpFoundation\RequestStack;
+   * @var \Symfony\Component\HttpFoundation\RequestStack
    */
   protected $requestStack;
 
@@ -41,8 +41,9 @@ class UrlHelperService {
   /**
    * Gets the 'ReturnTo' URL query parameter.
    *
-   * @return string|NULL 'ReturnTo' URL parameter; possibly NULL or empty if no
-   *   such parameter
+   * @return string|null
+   *   'ReturnTo' URL parameter; possibly NULL or empty if no
+   *   such parameter.
    */
   public function getReturnToUrl() : ?string {
     return $this->requestStack->getMasterRequest()->query->get('ReturnTo');
@@ -67,12 +68,13 @@ class UrlHelperService {
 
   /**
    * Checks if a URL is both valid and local.
-   * 
+   *
    * Checks to see if URL path $url is valid and points to the local Drupal
    * installation.
    *
    * @param mixed $url
    *   URL to check.
+   *
    * @return bool
    *   'TRUE' if conditions in description are met, else 'FALSE'
    */

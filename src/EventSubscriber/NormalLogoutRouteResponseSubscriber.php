@@ -22,7 +22,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
  */
 class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
 
-    /**
+  /**
    * Account.
    *
    * @var \Drupal\Core\Session\AccountInterface
@@ -74,9 +74,8 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
    *
    * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
    *   Response event.
-   * @return void
-   * @throws
-   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *
+   * @throws \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    * @throws \Exception
    *   Thrown if something went wrong when attempting to obtain simpleSAMLphp
@@ -122,7 +121,7 @@ class NormalLogoutRouteResponseSubscriber implements EventSubscriberInterface {
 
     // We will be redirecting to the home page.
     $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
-    
+
     // Redirect immediately if we are unauthenticated with simpleSAMLphp.
     if (!$this->sspLink->isAuthenticated()) {
       $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));

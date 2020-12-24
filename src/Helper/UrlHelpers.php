@@ -6,6 +6,7 @@ namespace Drupal\drupalauth4ssp\Helper;
 
 /**
  * Contains helpers related to URLs (generation, etc.).
+ *
  * @static
  */
 final class UrlHelpers {
@@ -19,12 +20,14 @@ final class UrlHelpers {
   /**
    * Generates a single logout URL with the given 'ReturnTo' URL.
    *
-   * @param string $returnToUrl
-   *   URL to return to after logout.
    * @param string $hostname
    *   Host name to use.
+   * @param string $returnToUrl
+   *   URL to return to after logout.
+   *
    * @return string
    *   Single logout URL.
+   *
    * @throws \InvalidArgumentException
    *   $returnToUrl or $hostname is empty().
    */

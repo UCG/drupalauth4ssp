@@ -6,6 +6,7 @@ namespace Drupal\drupalauth4ssp\Helper;
 
 /**
  * Helper methods for working with time.
+ *
  * @static
  */
 final class TimeHelpers {
@@ -23,6 +24,7 @@ final class TimeHelpers {
    *
    * @return int
    *   Current Unix timestamp.
+   *
    * @throws \RuntimeException
    *   Thrown if the PHP integer size is not at least four bytes (this is done
    *   to ensure PHP integers are large enough to store the current Unix

@@ -1,6 +1,7 @@
 <?php
 
 /**
+ * @file
  * Drupal Authentication for simpleSAMLphp module hook implementations, etc.
  *
  * This module tightly integrates the SimpleSAMLphp Identity Provider login
@@ -18,7 +19,7 @@ use Drupal\drupalauth4ssp\Helper\TimeHelpers;
 use SimpleSAML\Configuration;
 
 /**
- * Implements hook_cron.
+ * Implements hook_cron().
  */
 function drupalauth4ssp_cron() {
   // Run garbage cleanup for the two unique key store services.
@@ -37,7 +38,7 @@ function drupalauth4ssp_cron() {
 }
 
 /**
- * Implements hook_user_login.
+ * Implements hook_user_login().
  */
 function drupalauth4ssp_user_login($account) {
   // Set cookie if we are performing a login via the SSO login route.
@@ -47,7 +48,7 @@ function drupalauth4ssp_user_login($account) {
       drupalauth4ssp_set_user_cookie($account);
     }
   }
-  else if (_drupalauth4ssp_is_current_route_normal_login_route()) {
+  elseif (_drupalauth4ssp_is_current_route_normal_login_route()) {
     // If we just logged in via the normal user.login route, we will go ahead
     // and signal that we should initiate simpleSAMLphp authentication. We don't
     // perform that authentication here, because we don't want to redirect until
@@ -60,7 +61,7 @@ function drupalauth4ssp_user_login($account) {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter.
+ * Implements hook_form_FORM_ID_alter().
  */
 function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $form_state) {
   // Don't do SSO logic unless the login route is the SP-initiated SSO route.
@@ -70,7 +71,7 @@ function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $f
 }
 
 /**
- * Implements hook_user_logout.
+ * Implements hook_user_logout().
  */
 function drupalauth4ssp_user_logout($account) {
   if (_drupalauth4ssp_is_current_route_normal_logout_route()) {
@@ -90,7 +91,7 @@ function drupalauth4ssp_user_logout($account) {
  *
  * @param \Drupal\Core\Session\AccountInterface $account
  *   User account.
- * @return void
+ *
  * @throws \RuntimeException
  *   Thrown if function was unable to generate the user ID cookie nonce.
  * @throws \Exception
@@ -232,7 +233,7 @@ function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state)
 /**
  * Gets the current route name, if possible.
  *
- * @return string|NULL
+ * @return string|null
  *   Current route name, or 'NULL' if no route found.
  */
 function _drupalauth4ssp_get_current_route() : ?string {

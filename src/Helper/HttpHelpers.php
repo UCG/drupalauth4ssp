@@ -8,6 +8,7 @@ use Drupal\Component\Utility\Unicode;
 
 /**
  * Helper methods for working with the HTTP protocol (setting headers, etc.).
+ *
  * @static
  */
 final class HttpHelpers {
@@ -32,6 +33,7 @@ final class HttpHelpers {
    *
    * @param string $requestMethod
    *   Request method.
+   *
    * @return int
    *   Redirect code (302 or 303).
    */

@@ -56,7 +56,7 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    */
   protected $requestStack;
 
-    /**
+  /**
    * Service to interact with simpleSAMLphp.
    *
    * @var \Drupal\drupalauth4ssp\SimpleSamlPhpLink
@@ -79,7 +79,7 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    *   User validator.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   Entity type manager.
-   * @param \Symfony\Component\HttpFoundation\RequestStack
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   Request stack.
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
    *   Service to interact with simpleSAMLphp.
@@ -103,9 +103,8 @@ class NormalLoginRouteResponseSubscriber implements EventSubscriberInterface {
    *
    * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
    *   Response event.
-   * @return void
-   * @throws
-   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *
+   * @throws \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function handleNormalLoginResponse($event) : void {

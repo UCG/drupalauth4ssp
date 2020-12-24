@@ -47,7 +47,7 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Current account.
-   * @param \Symfony\Component\HttpFoundation\RequestStack
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   Request stack.
    */
   public function __construct(AccountInterface $account, $requestStack) {
@@ -60,7 +60,6 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
    *
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   Response event.
-   * @return void
    */
   public function handleLogoutOrLoginRequest($event) : void {
     // If we're not an unauthenticated user on the logout route, or an

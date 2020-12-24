@@ -6,6 +6,7 @@ namespace Drupal\drupalauth4ssp\Helper;
 
 /**
  * Static helper methods to deal with strings.
+ *
  * @static
  */
 final class StringHelpers {
@@ -21,25 +22,28 @@ final class StringHelpers {
    *
    * If $str is NULL or empty, returns $defaultMessage; else, returns $str.
    *
-   * @param string|NULL $str
+   * @param string|null $str
    *   String to check / return if possible.
-   * @param string|NULL $defaultMessage
+   * @param string|null $defaultMessage
    *   Default message if $str is NULL or empty.
-   * @return string|NULL
+   *
+   * @return string|null
+   *   Return value; see method description.
    */
-  static function getValueOrDefault(?string $str, ?string $defaultMessage) : ?string {
+  public static function getValueOrDefault(?string $str, ?string $defaultMessage) : ?string {
     return static::isNullOrEmpty($str) ? $defaultMessage : $str;
   }
 
   /**
    * Checks if $str is either 'NULL' or an empty string.
    *
-   * @param string|NULL $str
+   * @param string|null $str
    *   String to check.
+   *
    * @return bool
    *   'TRUE' if $str is 'NULL' or empty string, else 'FALSE'.
    */
-  static function isNullOrEmpty(?string $str) : bool {
+  public static function isNullOrEmpty(?string $str) : bool {
     return ($str === NULL || $str === '') ? TRUE : FALSE;
   }
 

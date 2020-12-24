@@ -1,6 +1,7 @@
 <?php
 
 /**
+ * @file
  * Post update hooks for drupalauth4ssp.
  */
 

@@ -53,7 +53,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
   /**
    * Helper service to obtain and determine if 'ReturnTo' URL can be used.
    *
-   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService;
+   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
    */
   protected $urlHelper;
 
@@ -73,7 +73,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
    *   User validator.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   Entity type manager.
-   * @param \Symfony\Component\HttpFoundation\RequestStack
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   Request stack.
    * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   Helper service to obtain and determine if 'ReturnTo' URL can be used.
@@ -96,7 +96,7 @@ class SsoLoginRouteInterceptor implements EventSubscriberInterface {
    *
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   The request event to which we have subscribed.
-   * @return void
+   *
    * @throws \RuntimeException
    *   Thrown if unable to generate the user ID cookie nonce.
    * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException

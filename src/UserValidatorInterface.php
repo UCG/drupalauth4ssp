@@ -18,7 +18,9 @@ interface UserValidatorInterface {
    *
    * @param \Drupal\user\UserInterface $user
    *   User entity to check.
-   * @return bool 'TRUE' if user is SSO-enabled; else 'FALSE'.
+   *
+   * @return bool
+   *   'TRUE' if user is SSO-enabled; else 'FALSE'.
    */
   public function isUserValid(UserInterface $user) : bool;
 

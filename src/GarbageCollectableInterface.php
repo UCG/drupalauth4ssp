@@ -11,8 +11,6 @@ interface GarbageCollectableInterface {
 
   /**
    * Cleanup garbage associated with this object.
-   *
-   * @return void
    */
   public function cleanupGarbage() : void;
 

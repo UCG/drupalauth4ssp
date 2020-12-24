@@ -61,7 +61,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
   /**
    * Session manager.
    *
-   * @var \Drupal\Core\Session\SessionManagerInterface;
+   * @var \Drupal\Core\Session\SessionManagerInterface
    */
   protected $sessionManager;
 
@@ -79,7 +79,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    */
   protected $userValidator;
 
-    /**
+  /**
    * Creates a session synchronization interceptor instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
@@ -101,7 +101,9 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
     UserValidatorInterface $userValidator,
     EntityTypeManagerInterface $entityTypeManager,
     ModuleHandlerInterface $moduleHandler,
-    SessionManagerInterface $sessionManager, $session, $sspLink) {
+    SessionManagerInterface $sessionManager,
+    $session,
+    $sspLink) {
     $this->account = $account;
     $this->userValidator = $userValidator;
     $this->entityTypeManager = $entityTypeManager;
@@ -116,9 +118,8 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    *
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   The request event to which we have subscribed.
-   * @return void
-   * @throws
-   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *
+   * @throws \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function handleRequest($event) : void {
@@ -144,9 +145,8 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   Request that triggered this synchronization attempt.
-   * @return void
-   * @throws
-   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *
+   * @throws \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function synchronizeSessionTypes($request) : void {

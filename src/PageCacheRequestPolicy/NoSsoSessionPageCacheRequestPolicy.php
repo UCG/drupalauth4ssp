@@ -27,15 +27,15 @@ class NoSsoSessionPageCacheRequestPolicy implements RequestPolicyInterface {
    *
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
    *   Helper service to link with simpleSAMLphp.
-  */
+   */
   public function __construct($sspLink) {
     $this->sspLink = $sspLink;
   }
 
   /**
    * {@inheritdoc}
-   * @throws
-   *   \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
+   *
+   * @throws \Drupal\drupalauth4ssp\Exception\SimpleSamlPhpInternalConfigException
    *   Thrown if there is a problem with the simpleSAMLphp configuration.
    */
   public function check($request) {

@@ -6,6 +6,7 @@ namespace Drupal\drupalauth4ssp;
 
 /**
  * Contains constants related to the DrupalAuth for SimpleSAMLphp module.
+ *
  * @static
  */
 final class Constants {
@@ -18,6 +19,7 @@ final class Constants {
 
   /**
    * SSO login path (including leading '/').
+   *
    * @var string
    */
   public const SSO_LOGIN_PATH = '/ssoLogin';

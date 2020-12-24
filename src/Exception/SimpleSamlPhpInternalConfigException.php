@@ -8,7 +8,7 @@ use Drupal\drupalauth4ssp\Helper\StringHelpers;
 
 /**
  * Exception type indicating an internal simpleSAMLphp configuration error.
- * 
+ *
  * Indicates a simpleSAMLphp mis-configuration error. If an inner exception is
  * available, it can be accessed with the getInnerException() method.
  */
@@ -17,12 +17,12 @@ class SimpleSamlPhpInternalConfigException extends SimpleSamlPhpInternalExceptio
   /**
    * Creates a new SimpleSamlPhpInternalConfigException object.
    *
-   * @param string|NULL $message
-   * Message pertaining to exception; can be NULL or an empty string, in which
-   * case a default message is used.
+   * @param string|null $message
+   *   Message pertaining to exception; can be NULL or an empty string, in which
+   *   case a default message is used.
    * @param int $code
    *   Exception code.
-   * @param Throwable|NULL $previous
+   * @param Throwable|null $previous
    *   Previous exception/error which triggered this exception. Can be NULL to
    *   indicate no such error.
    */

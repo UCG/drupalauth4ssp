@@ -34,7 +34,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
   /**
    * Helper service to obtain and determine if 'ReturnTo' URL can be used.
    *
-   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService;
+   * @var \Drupal\drupalauth4ssp\Helper\UrlHelperService
    */
   protected $urlHelper;
 
@@ -45,7 +45,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    *   Account.
    * @param \Drupal\drupalauth4ssp\Helper\UrlHelperService $urlHelper
    *   Helper service to obtain and determine if 'ReturnTo' URL can be used.
-   * @param \Symfony\Component\HttpFoundation\RequestStack
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   Request stack.
    */
   public function __construct(AccountInterface $account, $urlHelper, $requestStack) {
@@ -60,6 +60,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    *   Response redirecting user to page indicated in query string return URL,
    *   or, if that URL doesn't exist, to the home page.
+   *
    * @throws \Exception
    *   Thrown if something is wrong with the simpleSAMLphp authentication source
    *   configuration.
@@ -68,7 +69,7 @@ class SsoLogoutController extends ControllerBase implements ContainerInjectionIn
    */
   public function handle() {
     if (!$this->account->isAnonymous()) {
-      //Log the user out.
+      // Log the user out.
       user_logout();
     }
     // Clear the drupalauth4ssp cookie.

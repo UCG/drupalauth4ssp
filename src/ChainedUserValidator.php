@@ -8,7 +8,7 @@ use Drupal\user\UserInterface;
 
 /**
  * Represents a chain of user validators.
- * 
+ *
  * If any of the validators returns 'FALSE', validation is refused. Else,
  * validation is granted.
  */
@@ -26,14 +26,13 @@ class ChainedUserValidator implements UserValidatorInterface {
    *
    * @param UserValidatorInterface $validator
    *   Validator to add.
-   * @return void
    */
   public function addValidator(UserValidatorInterface $validator) : void {
     $this->subvalidators[] = $validator;
   }
 
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
   public function isUserValid(UserInterface $user) : bool {
     foreach ($this->subvalidators as $validator) {
