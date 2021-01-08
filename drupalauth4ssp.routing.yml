@@ -5,20 +5,3 @@ drupalauth4ssp.settings:
     _form: 'Drupal\drupalauth4ssp\Form\SettingsForm'
   requirements:
     _permission: 'administer drupalauth4ssp configuration'
-drupalauth4ssp.ssoLogin:
-  path: '/ssoLogin'
-  defaults:
-    _form: '\Drupal\user\Form\UserLoginForm'
-    _title: 'Log in'
-  requirements:
-    _access: 'TRUE'
-  options:
-    no_cache: TRUE
-drupalauth4ssp.ssoLogout:
-  path: '/ssoLogout'
-  defaults:
-    _controller: '\Drupal\drupalauth4ssp\Controller\SsoLogoutController::handle'
-  requirements:
-    _access: 'TRUE'
-  options:
-    no_cache: TRUE
