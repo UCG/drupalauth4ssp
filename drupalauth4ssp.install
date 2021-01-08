@@ -16,4 +16,3 @@ function drupalauth4ssp_schema() : array {
   // Return the schema for the unique expirable key store.
   return [UniqueExpirableKeyStore::DEFAULT_TABLE_NAME => UniqueExpirableKeyStore::getSchema()];
 }
-
