@@ -2,17 +2,15 @@
 
 /**
  * @file
- * Drupal Authentication for simpleSAMLphp module install hook implementations.
+ * Drupal Auth for simpleSAMLphp install/update/schema hook implementations.
  */
 
 declare(strict_types = 1);
 
-use Drupal\drupalauth4ssp\UniqueExpirableKeyStore;
-
 /**
- * Implements hook_schema().
+ * Implements hook_update_N;
  */
-function drupalauth4ssp_schema() : array {
-  // Return the schema for the unique expirable key store.
-  return [UniqueExpirableKeyStore::DEFAULT_TABLE_NAME => UniqueExpirableKeyStore::getSchema()];
+function drupalauth4ssp_update_8001() {
+  // Delete the unused "authsource" configuration entity.
+  // @todo: Finish
 }
