@@ -40,7 +40,9 @@ function drupalauth4ssp_update_8002() : void {
   $schemaDefinition = UniqueExpirableKeyStore::getSchema();
   // Modify the fields.
   $schema->changeField($tableName, 'storeId', 'storeId', $schemaDefinition['fields']['storeId']);
-  $schema->changeField($tableName, 'key', 'key', $schemaDefinition['fields']['key']);
+  // We enclose "key" in square brackets to ensure it is properly quoted (as it
+  // is a MySQL 8 reserved word).
+  $schema->changeField($tableName, '[key]', '[key]', $schemaDefinition['fields']['key']);
 
   // Re-add the primary key.
   $schema->addPrimaryKey($tableName, ['storeId', 'key']);
