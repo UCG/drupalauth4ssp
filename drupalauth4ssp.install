@@ -17,33 +17,3 @@ function drupalauth4ssp_schema() : array {
   return [UniqueExpirableKeyStore::DEFAULT_TABLE_NAME => UniqueExpirableKeyStore::getSchema()];
 }
 
-/**
- * Implements hook_update_N().
- */
-function drupalauth4ssp_update_8001() : void {
-  // Build unique expirable key store table.
-  $schema = \Drupal::database()->schema();
-  $schema->createTable(UniqueExpirableKeyStore::DEFAULT_TABLE_NAME, UniqueExpirableKeyStore::getSchema());
-}
-
-/**
- * Implements hook_update_N().
- */
-function drupalauth4ssp_update_8002() : void {
-  $schema = \Drupal::database()->schema();
-  $tableName = UniqueExpirableKeyStore::DEFAULT_TABLE_NAME;
-
-  // Change some field definitions. They involve fields associated with the
-  // primary key, so we drop the primary key first.
-  $schema->dropPrimaryKey($tableName);
-  // Grab the full schema definition so we can get the new field definitions.
-  $schemaDefinition = UniqueExpirableKeyStore::getSchema();
-  // Modify the fields.
-  $schema->changeField($tableName, 'storeId', 'storeId', $schemaDefinition['fields']['storeId']);
-  // We enclose "key" in square brackets to ensure it is properly quoted (as it
-  // is a MySQL 8 reserved word).
-  $schema->changeField($tableName, '[key]', '[key]', $schemaDefinition['fields']['key']);
-
-  // Re-add the primary key.
-  $schema->addPrimaryKey($tableName, ['storeId', 'key']);
-}
