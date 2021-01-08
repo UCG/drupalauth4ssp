@@ -19,6 +19,6 @@
   "license": "GPL-2.0-or-later",
   "minimum-stability": "dev",
   "require": {
-    "drupalauth/simplesamlphp-module-drupalauth": "~1.8.0"
+    "ucg/simplesamlphp-module-drupalauth": "~1.8.0"
   }
 }
