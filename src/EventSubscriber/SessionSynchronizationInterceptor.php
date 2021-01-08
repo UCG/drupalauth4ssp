@@ -97,7 +97,7 @@ class SessionSynchronizationInterceptor implements EventSubscriberInterface {
    * @param \Drupal\drupalauth4ssp\SimpleSamlPhpLink $sspLink
    *   Service to interact with simpleSAMLphp.
    */
-  public function __construct(AccountInterface $accountProxy,
+  public function __construct(AccountProxyInterface $accountProxy,
     UserValidatorInterface $userValidator,
     EntityTypeManagerInterface $entityTypeManager,
     ModuleHandlerInterface $moduleHandler,

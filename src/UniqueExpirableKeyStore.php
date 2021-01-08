@@ -230,7 +230,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
       // Go ahead and lock and select the row/index corresponding to this key.
       $result = $this->databaseConnection->query('SELECT expiry FROM {' .
         $this->databaseConnection->escapeTable($this->tableName) .
-        '} WHERE storeId = :storeId AND `key` = :key FOR UPDATE',
+        '} WHERE storeId = :storeId AND storedKey = :key FOR UPDATE',
         [':storeId' => $this->storeId, ':key' => $key]);
 
       // Try to fetch the first expiry timestamp.
@@ -239,7 +239,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
         // No rows -- go ahead and insert the key.
         $this->databaseConnection->insert($this->tableName)->fields([
           'storeId' => $this->storeId,
-          'key' => $key,
+          'storedKey' => $key,
           'expiry' => $expiryTime,
         ])->execute();
         $couldInsertOrUpdateKeyRecord = TRUE;
@@ -260,7 +260,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
           // time.
           $this->databaseConnection->update($this->tableName)
             ->fields(['expiry' => $expiryTime])
-            ->condition('key', $key, '=')
+            ->condition('storedKey', $key, '=')
             ->condition('storeId', $storeId, '=')
             ->execute();
           $couldInsertOrUpdateKeyRecord = TRUE;
@@ -331,7 +331,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
       // Go ahead and lock and select the row/index corresponding to this key.
       $result = $this->databaseConnection->query('SELECT expiry FROM {' .
         $this->databaseConnection->escapeTable($this->tableName) .
-        '} WHERE storeId = :storeId AND `key` = :key FOR UPDATE',
+        '} WHERE storeId = :storeId AND storedKey = :key FOR UPDATE',
         [':storeId' => $this->storeId, ':key' => $key]);
       // Note that the index for the store ID/key pair will be locked *even if
       // no rows are returned from the SELECT query above*.
@@ -360,7 +360,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
         else {
           // Key is active. Go ahead and delete it.
           $result = $this->databaseConnection->delete($this->tableName)
-            ->condition('key', $key, '=')
+            ->condition('storedKey', $key, '=')
             ->condition('storeId', $this->storeId, '=')
             ->execute();
           if ($result !== 1) {
@@ -532,12 +532,12 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
           'default' => 'store',
           'binary' => TRUE,
         ],
-        'key' => [
+        'storedKey' => [
           'description' => 'Key being stored. Must be unique for a given store ID.',
           'type' => 'varchar',
           'length' => static::MAX_KEY_LENGTH,
           'not null' => TRUE,
-          'default' => 'key',
+          'default' => 'storedKey',
           'binary' => TRUE,
         ],
         'expiry' => [
@@ -548,7 +548,7 @@ class UniqueExpirableKeyStore implements GarbageCollectableInterface {
           'unsigned' => TRUE,
         ],
       ],
-      'primary key' => ['storeId', 'key'],
+      'primary key' => ['storeId', 'storedKey'],
     ];
   }
 
