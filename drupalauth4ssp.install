@@ -36,8 +36,11 @@ function drupalauth4ssp_update_8002() : void {
   // Change some field definitions. They involve fields associated with the
   // primary key, so we drop the primary key first.
   $schema->dropPrimaryKey($tableName);
-  $schema->changeField($tableName, 'storeId', 'storeId', ['binary' => TRUE]);
-  $schema->changeField($tableName, 'key', 'key', ['binary' => TRUE]);
+  // Grab the full schema so we can get the new field definitions.
+  $schema = UniqueExpirableKeyStore::getSchema();
+  // Modify the fields.
+  $schema->changeField($tableName, 'storeId', 'storeId', $schema['fields']['storeId']);
+  $schema->changeField($tableName, 'key', 'key', $schema['fields']['key']);
 
   // Re-add the primary key.
   $schema->addPrimaryKey($tableName, ['storeId', 'key']);
