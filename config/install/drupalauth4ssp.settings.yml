@@ -1,1 +1,1 @@
-authsource: drupal-userpass
+is_possible_idp_session_cookie_name: is_possible_idp_session
