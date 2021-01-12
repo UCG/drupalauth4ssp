@@ -14,13 +14,13 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['authsource'] = [
+    $form['is_possible_idp_session_cookie_name'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Authsource'),
+      '#title' => $this->t('"Possible IdP session" Cookie Name'),
       '#default_value' => $this
         ->config('drupalauth4ssp.settings')
-        ->get('authsource'),
-      '#description' => $this->t('The machine name of the authsource used in SimpleSAMLphp.'),
+        ->get('is_possible_idp_session_cookie_name'),
+      '#description' => $this->t('The name of the cookie indicating there is possibly a session on the IdP.'),
       '#required' => TRUE,
     ];
 
@@ -39,7 +39,7 @@ class SettingsForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('drupalauth4ssp.settings')
-      ->set('authsource', $form_state->getValue('authsource'))
+      ->set('authsource', $form_state->getValue('is_possible_idp_session_cookie_name'))
       ->save();
     parent::submitForm($form, $form_state);
   }
