@@ -11,6 +11,10 @@ declare(strict_types = 1);
  * Implements hook_update_N;
  */
 function drupalauth4ssp_update_8001() {
-  // Delete the unused "authsource" configuration entity.
-  // @todo: Finish
+  // Clear the unused "authsource" configuration option, if necessary.
+  $configFactory = \Drupal::configFactory();
+  $configuration = $configFactory->getEditable('drupalauth4ssp.settings');
+  if (!empty($configuration)) {
+    $configuration->clear('authsource');
+  }
 }
