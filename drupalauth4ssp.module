@@ -10,30 +10,16 @@
 
 declare(strict_types = 1);
 
-use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\Url;
-use Drupal\drupalauth4ssp\GarbageCollectableInterface;
-use Drupal\drupalauth4ssp\Helper\TimeHelpers;
-use SimpleSAML\Configuration;
+use Drupal\drupalauth4ssp\Helper\CookieHelpers;
 
 /**
- * Implements hook_cron().
+ * Implements hook_form_FORM_ID_alter().
  */
-function drupalauth4ssp_cron() {
-  // Run garbage cleanup for the two unique key store services.
-  $servicesToCleanup = ['drupalauth4ssp.nonce_collision_store', 'drupalauth4ssp.used_nonce_store'];
-
-  foreach ($servicesToCleanup as $serviceName) {
-    $service = \Drupal::service($serviceName);
-    assert($service instanceof GarbageCollectableInterface);
-    try {
-      $service->cleanupGarbage();
-    }
-    catch (\Exception $e) {
-      // Swallow exception (@todo: Log).
-    }
+function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $form_state) {
+  // Don't do SSO logic unless SP-initiated login is being performed.
+  if (_drupalauth4ssp_is_sp_initiated_login_being_performed()) {
+    $form['#submit'][] = 'drupalauth4ssp_user_sso_login_submit';
   }
 }
 
@@ -41,193 +27,41 @@ function drupalauth4ssp_cron() {
  * Implements hook_user_login().
  */
 function drupalauth4ssp_user_login($account) {
-  // Set cookie if we are performing a login via the SSO login route.
-  if (_drupalauth4ssp_is_current_route_sso_login_route()) {
-    // Double check to ensure user is SSO-enabled.
-    if (\Drupal::service('drupalauth4ssp.user_validator')->isUserValid($account)) {
-      drupalauth4ssp_set_user_cookie($account);
-    }
-  }
-  elseif (_drupalauth4ssp_is_current_route_normal_login_route()) {
-    // If we just logged in via the normal user.login route, we will go ahead
-    // and signal that we should initiate simpleSAMLphp authentication. We don't
-    // perform that authentication here, because we don't want to redirect until
-    // all implementations of hook_user_login are called.
+  // If necessary, and if the user is an SSO-enabled user, set a cookie to
+  // indicate that there may be an IdP session.
+  if (\Drupal::service('drupalauth4ssp.user_validator')->isUserValid($account)) {
+    // Grab the cookie's name.
+    $isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
+    // Make the expiry time as large as possible, because if it is detected later
+    // that we are logged out, this cookie will automatically be deleted.
+    $expiryTime = PHP_INT_MAX;
 
-    // Grab a reference to the static "should initiate SSP login" variable.
-    $shouldInitiateLogin = &drupal_static('drupalauth4ssp_var_shouldInitiateSspLogin');
-    $shouldInitiateLogin = TRUE;
-  }
-}
-
-/**
- * Implements hook_form_FORM_ID_alter().
- */
-function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $form_state) {
-  // Don't do SSO logic unless the login route is the SP-initiated SSO route.
-  if (_drupalauth4ssp_is_current_route_sso_login_route()) {
-    $form['#submit'][] = 'drupalauth4ssp_user_login_submit';
+    // If we are performing a service provider initiated login, the response
+    // subscriber will probably pass control off to simpleSAMLphp to perform a
+    // redirect. Since the redirect isn't performed in the normal Symfony way,
+    // we can't rely upon Symfony's cookie functionality to set the cookie.
+    // Hence, we just use setcookie().
+    setcookie($isPossibleIdpSessionCookieName, 'TRUE', $expiryTime, '/', CookieHelpers::getIsPossibleIdpSessionCookieDomain());
   }
 }
 
 /**
- * Implements hook_user_logout().
- */
-function drupalauth4ssp_user_logout($account) {
-  if (_drupalauth4ssp_is_current_route_normal_logout_route()) {
-    // If we just logged out via the normal user.logout route, we will go ahead
-    // and signal that we should destroy the simpleSAMLphp session, etc., and
-    // initiate single logout. We don't perform that here, because we want to
-    // ensure all implementations of hook_user_logout are called first.
-
-    // Grab a reference to the static "should initiate SSP logout" variable.
-    $shouldInitiateLogout = &drupal_static('drupalauth4ssp_var_shouldInitiateSspLogout');
-    $shouldInitiateLogout = TRUE;
-  }
-}
-
-/**
- * Set auth cookie for the account.
+ * For successful SSO logins, sets a variable indicating login was successful.
  *
- * @param \Drupal\Core\Session\AccountInterface $account
- *   User account.
- *
- * @throws \RuntimeException
- *   Thrown if function was unable to generate the user ID cookie nonce.
- * @throws \Exception
- *   Thrown if something is wrong with the simpleSAMLphp authentication source
- *   configuration.
- * @throws \SimpleSAML\Error\CriticalConfigurationError
- *   Thrown if something is wrong with the simpleSAMLphp configuration.
+ * @param array $form
+ *   Form.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   Form state.
  */
-function drupalauth4ssp_set_user_cookie(AccountInterface $account) : void {
-  // Get the configuration information from SimpleSAMLphp.
-  $ssp_config = _drupalauth4ssp_get_simplesamlphp_config();
-
-  // If we don't have configuration, exit without doing anything.
-  if (!is_array($ssp_config)) {
-    // The least we can do is write something to the watchdog so someone will
-    // know what's happening.
-    \Drupal::logger('drupalauth4ssp')
-      ->warning('Could not use drupalauth for %name, could not get the SimpleSAMLphp configuration.', ['%name' => $account->getAccountName()]);
-    return;
-  }
-
-  // In order to pass the user ID to simpleSAMLphp, we create a cookie in the
-  // following format:
-  // [cookie message]:[HMAC of cookie message]
-  // where:
-  // [cookie message] = [user ID]:[expiry]:[nonce]
-  // The HMAC (hashed message authentication code) is a shared-key digital
-  // signature that verifies the authenticity of the message: the receiver
-  // of the cookie can check to be sure the HMAC was generated using the cookie
-  // message and a particular key (the key is generated from the Drupal
-  // 'private_key' service and the simpleSAMLphp secret salt).
-  // The cookie message contains the user ID (as you would expect), as well as
-  // an expiry (Unix) timestamp and a nonce, which require some explanation.
-  // These (last two) components are there to prevent replay attacks, when
-  // someone re-uses the same cookie twice to log in without re-authentication.
-  // The expiry time ensures that, first of all, the cookie can only be used for
-  // a short time. The nonce, a key which is guaranteed not to be the same as
-  // any key generated thereafter but before the 'expiry' time, provides replay
-  // attack protection -- once this nonce is used, it is added to a server-side
-  // cache which prevents re-use until (possibly) the expiry time (after which
-  // the cookie is useless anyway).
-  //
-  // We store nonces in two locations on the server. The first nonce store,
-  // represented by the 'drupalauth4ssp.nonce_collision_store' service, is used
-  // to ensure we don't accidentally generate a nonce which has already been
-  // generated in the last 'x' seconds, where 'x' is the duration used to
-  // generate the expiry times stored in the nonce cookies (plus a fudge factor,
-  // for a safety measure). Nonces in this store are set to expire at a time
-  // equal to the expiry time stored in the second nonce store for this nonce
-  // (described below), and are added at the time we generate the cookie
-  // (below). The second nonce store, represented by the
-  // 'drupalauth4ssp.used_nonce_store' service, is used to ensure we don't reuse
-  // a non-expired nonce. Every time a nonce is used, it is added to this store,
-  // and set to expire at the time of the expiry of the nonce (plus the same
-  // fudge factor used in the first nonce store above). On the simpleSAMLphp
-  // side, with a patched version of the drupalauth simpleSAMLphp module, we
-  // check to ensure a nonce in a cookie isn't in this store before we allow it
-  // to be used (in addition to checking to ensure that the cookie's expiry time
-  // hasn't been reached).
-
-  // Grab the nonce storage object.
-  $nonceCollisionStore = \Drupal::service('drupalauth4ssp.nonce_collision_store');
-
-  $serviceContainer = \Drupal::getContainer();
-  // We measure the nonce expiry from the request time, if it is available --
-  // otherwise we use the current time.
-  $currentTime = TimeHelpers::getCurrentTime();
-  $expiry = $currentTime + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime');
-  // Collision store expiry = $expiry + buffer time.
-  $collisionStoreExpiry = $expiry + $serviceContainer->getParameter('drupalauth4ssp.nonce_lifetime_delta');
-
-  // Try to generate a valid nonce. Give up after 1,000 attempts.
-  $i = 0;
-  do {
-    // Nonce = base-64 encoded version of 16 cryptographically random bytes.
-    $nonce = base64_encode(random_bytes(16));
-    try {
-      $wasNonceValid = $nonceCollisionStore->tryPutKey($nonce, $collisionStoreExpiry);
-    }
-    catch (\Exception $e) {
-      throw new \RuntimeException('Failed to generate user ID cookie nonce.', 0, $e);
-    }
-    $i++;
-  } while (!$wasNonceValid && $i < 1000);
-  if (!$wasNonceValid) {
-    throw new \RuntimeException('Could not generate sufficiently unique user ID cookie nonce.');
-  }
-
-  // Now, store the cookie as described above. First, generate the key used to
-  // sign the cookie's message.
-  $key = $ssp_config['secretsalt'] . \Drupal::service('private_key')->get();
-  // Next, generate the cookie's message ("[cookie message]" described above).
-  $message = $account->id() . ':' . $expiry . ':' . $nonce;
-  // Generate the HMAC (signature).
-  $hmac = Crypt::hmacBase64($message, $key);
-  // Assemble the full cookie data.
-  $cookieData = $message . ':' . $hmac;
-
-  // Set the cookie (@todo: set w/ request).
-  setcookie($ssp_config['cookie_name'], $cookieData, $expiry, $ssp_config['baseurlpath']);
-}
-
-/**
- * Unsets the special drupalauth4ssp user cookie.
- *
- * @throws \Exception
- *   Thrown if something is wrong with the simpleSAMLphp authentication source
- *   configuration.
- * @throws \SimpleSAML\Error\CriticalConfigurationError
- *   Thrown if something is wrong with the simpleSAMLphp configuration.
- */
-function drupalauth4ssp_unset_user_cookie() {
-  // Get the configuration information from simpleSAMLphp.
-  $ssp_config = _drupalauth4ssp_get_simplesamlphp_config();
-
-  // If we don't have configuration, exit without doing anything.
-  if (!is_array($ssp_config)) {
-    // The least we can do is write something to the watchdog so someone will
-    // know what's happening.
-    \Drupal::logger('drupalauth4ssp')->warning('Could not use drupalauth for %name, could not get the SimpleSAMLphp configuration.', ['%name' => $account->name]);
-    return;
-  }
-
-  // Delete the cookie.
-  setcookie($ssp_config['cookie_name'], '', time() - 3600, $ssp_config['baseurlpath']);
-}
-
-/**
- * Sets redirect upon successful login.
- */
-function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state) {
-  // If the 'ReturnTo' URL is okay, send the user to that URL.
-  $urlHelper = \Drupal::service('drupalauth4ssp.url_helper');
-  if ($urlHelper->isReturnToUrlValid()) {
-    $form_state->setRedirectUrl(Url::fromUri($urlHelper->getReturnToUrl()));
-  }
+function drupalauth4ssp_user_sso_login_submit($form, FormStateInterface $form_state) {
+  // Here, we set a variable that can be read by the kernel.response event
+  // subscriber in
+  // Drupal\drupalauth4ssp\EventSubscriber\SpInitiatedLoginRouteResponseSubscriber.
+  // This variable indicates the login form was successfully validated and
+  // submitted. The subscriber above can read this variable and use it to help
+  // determine whether to pass user attributes to simpleSAMLphp.
+  $wasLoginFormSubmittedSuccessfully = &drupal_static('drupalauth4ssp_var_wasLoginFormSubmittedSuccessfully');
+  $wasLoginFormSubmittedSuccessfully = TRUE;
 }
 
 /**
@@ -240,71 +74,17 @@ function _drupalauth4ssp_get_current_route() : ?string {
   return \Drupal::routeMatch()->getRouteName();
 }
 
-/**
- * Returns the simpleSAMLphp configuration.
- *
- * @todo Convert to service?
- *
- * @throws \Exception
- *   Thrown if something is wrong with the authentication source configuration.
- * @throws \SimpleSAML\Error\CriticalConfigurationError
- *   Thrown if something is wrong with the simpleSAMLphp configuration.
- */
-function _drupalauth4ssp_get_simplesamlphp_config() {
-  $config = NULL;
-
-  $ssp_config = Configuration::getInstance();
-
-  if (!is_object($ssp_config)) {
-    return;
-  }
-
-  // Get the secretsalt.
-  $config['secretsalt'] = $ssp_config->getValue('secretsalt');
-
-  // Get the baseurlpath.
-  $config['baseurlpath'] = $ssp_config->getBasePath();
-
-  unset($ssp_config);
-
-  $ssp_authsources = Configuration::getConfig('authsources.php');
-
-  $authsource = $ssp_authsources->getValue(\Drupal::service('config.factory')->get('drupalauth4ssp.settings')->get('authsource'));
-
-  // Get cookie_name from specified authsource.
-  $config['cookie_name'] = !empty($authsource['cookie_name']) ? $authsource['cookie_name'] : 'drupalauth4ssp';
-
-  unset($ssp_authsources);
-
-  return $config;
+function _drupalauth4ssp_is_current_route_login_route() : bool {
+  return _drupalauth4ssp_get_current_route() === 'user.login';
 }
 
 /**
- * Checks to see if the current route is the standard login route (user.login).
+ * Checks if route and URL query string indicate an SP-initiated login.
  *
  * @return bool
- *   'TRUE' if standard login route, else 'FALSE'.
+ *   'TRUE' if the route and query string indicate than an SP-initiated login is
+ *   being performed, else 'FALSE'.
  */
-function _drupalauth4ssp_is_current_route_normal_login_route() : bool {
-  return (_drupalauth4ssp_get_current_route() === 'user.login') ? TRUE : FALSE;
-}
-
-/**
- * Checks to see if current route is the standard logout route (user.logout).
- *
- * @return bool
- *   'TRUE' if standard logout route, else 'FALSE'.
- */
-function _drupalauth4ssp_is_current_route_normal_logout_route() : bool {
-  return (_drupalauth4ssp_get_current_route() === 'user.logout') ? TRUE : FALSE;
-}
-
-/**
- * Checks to see if the current route is the SP-initiated SSO login route.
- *
- * @return bool
- *   'TRUE' if SP-initiated SSO login route, else 'FALSE'.
- */
-function _drupalauth4ssp_is_current_route_sso_login_route() : bool {
-  return (_drupalauth4ssp_get_current_route() === 'drupalauth4ssp.ssoLogin') ? TRUE : FALSE;
+function _drupalauth4ssp_is_sp_initiated_login_being_performed() : bool {
+  return (_drupalauth4ssp_is_current_route_login_route() && \Drupal::request()->query->has('fromSp')) ? TRUE : FALSE;
 }
