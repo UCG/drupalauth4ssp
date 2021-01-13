@@ -26,7 +26,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * user, because one request might log the user out before the other request is
  * initiated.
  */
-class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterface {
+class StandardLogoutLoginRouteRequestSubscriber implements EventSubscriberInterface {
 
   /**
    * Account.
@@ -43,7 +43,7 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
   protected $requestStack;
 
   /**
-   * Creates a new normal logout/login route request subscriber object.
+   * Creates a new standard logout/login route request subscriber object.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Current account.
@@ -63,7 +63,7 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
    * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   Response event.
    */
-  public function handleLogoutOrLoginRequest($event) : void {
+  public function handleStandardLogoutOrLoginRequest($event) : void {
     // If we're not an unauthenticated user on the logout route, or an
     // authenticated user on the login route, get out, as this subscriber is
     // only designed for those cases.
@@ -84,7 +84,7 @@ class NormalLogoutLoginRouteRequestSubscriber implements EventSubscriberInterfac
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    return [KernelEvents::REQUEST => ['handleLogoutOrLoginRequest']];
+    return [KernelEvents::REQUEST => ['handleStandardLogoutOrLoginRequest']];
   }
 
 }
