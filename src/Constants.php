@@ -18,10 +18,15 @@ final class Constants {
   }
 
   /**
-   * SSO login path (including leading '/').
+   * Query string key for query string parameter indicating simpleSAMLphp state.
    *
    * @var string
    */
-  public const SSO_LOGIN_PATH = '/ssoLogin';
+  public const SSP_STATE_QUERY_STRING_KEY = 'sspState';
+
+  /**
+   * Identifier for the simpleSAMLphp stage corresponding to an auth request.
+   */
+  public const SSP_LOGIN_SSP_STAGE_ID = 'drupalauth:authentication';
 
 }

@@ -58,4 +58,37 @@ final class CookieHelpers {
     return $isPossibleIdpSessionCookieDomain;
   }
 
+  /**
+   * Gets the "is possible IdP session" cookie expiration timestamp.
+   *
+   * @return int
+   *   Unix timestamp corresponding to expiration time.
+   */
+  public static function getIsPossibleIdpSessionCookieExpiration() : int {
+    // Make the expiry time as large as possible to stay on the safe side (users
+    // on a service provider may not be automatically logged if this cookie is
+    // unset when it should be set, but the converse is not true).
+    return PHP_INT_MAX;
+  }
+
+  /**
+   * Sets the "is possible IdP session" cookie using setcookie().
+   */
+  public static function setIsPossibleIdpSessionCookie() : void {
+    // Grab the cookie's name.
+    $isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
+
+    setcookie($isPossibleIdpSessionCookieName, 'TRUE', static::getIsPossibleIdpSessionCookieExpiration(), '/', CookieHelpers::getIsPossibleIdpSessionCookieDomain());
+  }
+
+  /**
+   * Clears the "is possible IdP session" cookie using setcookie().
+   */
+  public static function clearIsPossibleIdpSessionCookie() : void {
+    // Grab the cookie's name.
+    $isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
+
+    setcookie($isPossibleIdpSessionCookieName, '', time() - 3600, '/', CookieHelpers::getIsPossibleIdpSessionCookieDomain());
+  }
+
 }

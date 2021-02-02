@@ -13,8 +13,11 @@ use Drupal\Core\Routing\RouteSubscriberBase;
  * authenticated/unauthenticated users, respectively. This is to ensure the
  * behavior for these routes, in terms of what page a user accessing such a
  * route is redirected to, is consistent between authenticated and
- * unauthenticated users. For the reasons such consitency is important, @see
- * \Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutLoginRouteRequestSubscriber.
+ * unauthenticated users. For reasons such consistency is important, @see
+ * \Drupal\drupalauth4ssp\EventSubscriber\LoginRouteRequestSubscriber.
+ * This class also sets the controller for the user.logout route to our custom
+ * controller. Finally, this class ensures that neither the user.logout, or the
+ * user.login routes are cached.
  */
 class LoginLogoutRouteModifierSubscriber extends RouteSubscriberBase {
 
@@ -27,13 +30,19 @@ class LoginLogoutRouteModifierSubscriber extends RouteSubscriberBase {
     if (!empty($loginRoute)) {
       // If the route is defined, ensure anyone can access it.
       $loginRoute->setRequirements(['_access' => 'TRUE']);
+      // And ensure response are never cached.
+      $loginRoute->setOption('no_cache', TRUE);
     }
 
     // Next, modify the user.logout route.
     $logoutRoute = $collection->get('user.logout');
     if (!empty($logoutRoute)) {
       // If the route is defined, ensure anyone can access this route.
-      $logoutRoute->setRequirements(['_access' => 'TRUE']);
+      $logoutRoute->setRequirements(['_controller' => 'TRUE']);
+      // Set the controller to our custom controller.
+      $logoutRoute->setDefault('_controller', '\\Drupal\\drupalauth4ssp\\Controller\\UserLogoutController::handle');
+      // And ensure response are never cached.
+      $logoutRoute->setOption('no_cache', TRUE);
     }
   }
 

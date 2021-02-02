@@ -2,106 +2,37 @@
 
 /**
  * @file
- * Drupal Authentication for simpleSAMLphp module hook implementations, etc.
- *
- * This module tightly integrates the SimpleSAMLphp Identity Provider login
- * experience with a Drupal site.
+ * Drupal Auth for simpleSAMLphp hook implementation.
  */
 
 declare(strict_types = 1);
 
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\drupalauth4ssp\Helper\CookieHelpers;
-use Drupal\user\Entity\User;
+use Drupal\Core\Url;
 
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $form_state) {
-  // Don't do SSO logic unless SP-initiated login is being performed.
-  if (_drupalauth4ssp_is_sp_initiated_login_being_performed()) {
-    $form['#submit'][] = 'drupalauth4ssp_user_sso_login_submit';
-  }
+function drupalauth4ssp_form_user_login_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+  // Add submit handler to change form redirect URL.
+  $form['#submit'][] = 'drupalauth4ssp_user_login_submit';
 }
 
 /**
- * Implements hook_user_login().
- */
-function drupalauth4ssp_user_login($account) {
-  // If necessary, and if the user is an SSO-enabled user, set a cookie to
-  // indicate that there may be an IdP session.
-  if (\Drupal::service('drupalauth4ssp.user_validator')->isUserValid($account)) {
-    // Grab the cookie's name.
-    $isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
-    // Make the expiry time as large as possible, because if it is detected later
-    // that we are logged out, this cookie will automatically be deleted.
-    $expiryTime = PHP_INT_MAX;
-
-    // If we are performing a service provider initiated login, the response
-    // subscriber will probably pass control off to simpleSAMLphp to perform a
-    // redirect. Since the redirect isn't performed in the normal Symfony way,
-    // we can't rely upon Symfony's cookie functionality to set the cookie.
-    // Hence, we just use setcookie().
-    setcookie($isPossibleIdpSessionCookieName, 'TRUE', $expiryTime, '/', CookieHelpers::getIsPossibleIdpSessionCookieDomain());
-  }
-}
-
-/**
- * Implements hook_user_logout().
- */
-function drupalauth4ssp_hook_user_logout($account) {
-  // We set a static variable when this hook is invoked, and another indicating
-  // whether it was an SSO-enabled user who was just logged out. See
-  // @see \Drupal\drupalauth4ssp\EventSubscriber\StandardLogoutRouteResponseSubscriber
-  // for details on how these variables are used.
-
-  $wasLogoutHookInvoked = &drupal_static('drupalauth4ssp_var_wasLogoutHookInvoked');
-  $wasLogoutHookInvoked = TRUE;
-
-  $wasLoggedOutUserSsoEnabledUser = &drupal_static('drupalauth4ssp_var_wasLoggedOutUserSsoEnabledUser');
-  $wasLoggedOutUserSsoEnabledUser = \Drupal::service('drupalauth4ssp.user_validator')->isUserValid(User::load($account->id()));
-}
-
-/**
- * For SSO logins, sets a variable indicating the login form was submitted.
+ * Ensures redirect set to home page upon successful login.
+ *
+ * For the reasons for this,
+ * @see \Drupal\drupalauth4ssp\EventSubscriber\LoginRouteRequestSubscriber.
  *
  * @param array $form
  *   Form.
  * @param \Drupal\Core\Form\FormStateInterface $form_state
  *   Form state.
  */
-function drupalauth4ssp_user_sso_login_submit($form, FormStateInterface $form_state) {
-  // Here, we set a variable that can be read by the kernel.response event
-  // subscriber in
-  // Drupal\drupalauth4ssp\EventSubscriber\SpInitiatedLoginRouteResponseSubscriber.
-  // This variable indicates the login form was successfully validated and
-  // submitted. The subscriber above can read this variable and use it to help
-  // determine whether to pass user attributes to simpleSAMLphp.
-  $wasLoginFormSubmittedSuccessfully = &drupal_static('drupalauth4ssp_var_wasLoginFormSubmittedSuccessfully');
-  $wasLoginFormSubmittedSuccessfully = TRUE;
+function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state) {
+  // Send the user to the front page.
+  $form_state->setRedirectUrl(Url::fromRoute('<front>')->setAbsolute());
 }
 
-/**
- * Gets the current route name, if possible.
- *
- * @return string|null
- *   Current route name, or 'NULL' if no route found.
- */
-function _drupalauth4ssp_get_current_route() : ?string {
-  return \Drupal::routeMatch()->getRouteName();
-}
-
-function _drupalauth4ssp_is_current_route_login_route() : bool {
-  return _drupalauth4ssp_get_current_route() === 'user.login';
-}
-
-/**
- * Checks if route and URL query string indicate an SP-initiated login.
- *
- * @return bool
- *   'TRUE' if the route and query string indicate than an SP-initiated login is
- *   being performed, else 'FALSE'.
- */
-function _drupalauth4ssp_is_sp_initiated_login_being_performed() : bool {
-  return (_drupalauth4ssp_is_current_route_login_route() && \Drupal::request()->query->has('fromSp')) ? TRUE : FALSE;
-}
+// @todo Need to bring back the validation code for SSO-enabled users (bring in
+// from drupalauth4ssp_extra_features module).
