@@ -87,8 +87,6 @@ class LoginRouteRequestSubscriber implements EventSubscriberInterface {
    *   suitable redirect URL.
    */
   public function handleLoginRequest($event) : void {
-    $currentRequest = $this->requestStack->getCurrentRequest();
-
     // If we're not an authenticated user on the login route, get out, as this
     // subscriber is only designed for that case.
     $route = $event->getRequest()->attributes->get('_route');
@@ -98,7 +96,8 @@ class LoginRouteRequestSubscriber implements EventSubscriberInterface {
 
     // If appropriate, complete simpleSAMLphp authentication (this will only
     // occur if their is an appropriate simpleSAMLphp state ID and the user is
-    // is an SSO-enabled user).
+    // is an SSO-enabled user). This call won't return if the simpleSAMLphp
+    // authentication is completed, except in the case of exceptions.
     $this->sspIntegrationManager->completeSspAuthenticationForLoginRouteIfAppropriate();
 
     // Otherwise, redirect to the front page.
