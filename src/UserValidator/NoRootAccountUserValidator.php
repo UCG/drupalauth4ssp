@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Drupal\drupalauth4ssp\SsoUserValidator;
+namespace Drupal\drupalauth4ssp\UserValidator;
 
 use Drupal\drupalauth4ssp\UserValidatorInterface;
 use Drupal\user\UserInterface;

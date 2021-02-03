@@ -7,6 +7,47 @@
 
 declare(strict_types = 1);
 
+function drupalauth4ssp_install() {
+  // We have to ensure the SSO-enabled user field shows up properly.
+  // First, grab the entity display repository so we can manipulate default
+  // form/view display configuration.
+  $displayRepository = \Drupal::service('entity_display.repository');
+
+  // Grab the default user entity form display configuration.
+  $userFormDisplayConfig = $displayRepository->getFormDisplay('user', 'user');
+  // Set up the form display for our "SSO-enabled user" field. We set the weight
+  // for the checkbox for this field so that it comes after other fields
+  // currently associated with this form display.
+  $userFormDisplayConfig->setComponent('field_sso_enabled_user', [
+    'weight' => $userFormDisplayConfig->getHighestWeight() + 1,
+    'settings' => ['display_label' => TRUE],
+    'type' => 'boolean_checkbox',
+    'region' => 'content',
+  ])->save();
+
+  // Now, grab the default user entity view display configuration.
+  $userViewDisplayConfig = $displayRepository->getViewDisplay('user', 'user');
+  // Set up the view display for the "SSO-Enabled user" field. Like above, set
+  // the weight for this field so that it comes after other components when
+  // displayed.
+  $userViewDisplayConfig->setComponent('field_sso_enabled_user', [
+    'weight' => $userViewDisplayConfig->getHighestWeight() + 1,
+    'label' => 'above',
+    'settings' => ['format' => 'default'],
+    'type' => 'boolean',
+    'region' => 'content',
+  ])->save();
+}
+
+/**
+ * Implements hook_uninstall.
+ */
+function drupalauth4ssp_extra_features_uninstall() {
+  // Remove the "SSO-Enabled user" field (only necessary to remove field
+  // storage, since the field has a dependency on the storage).
+  FieldStorageConfig::loadByName('user', 'field_sso_enabled_user')->delete();
+}
+
 /**
  * Implements hook_update_N;
  */
@@ -17,4 +58,8 @@ function drupalauth4ssp_update_8001() {
   if (!empty($configuration)) {
     $configuration->clear('authsource');
   }
+
+  // Drop the expirable key/value table we use to use for nonces.
+  $schema = \Drupal::database()->schema();
+  $schema->dropTable('drupalauth4ssp_unique_expirable_key_store');
 }

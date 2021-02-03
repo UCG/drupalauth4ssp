@@ -111,7 +111,7 @@ class UserLogoutController extends ControllerBase implements ContainerInjectionI
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    return new static($container->get('current_user'), $container->get('drupalauth4ssp.user_validator'), $container->get('entity_type.manager'), $container->get('request_stack'));
+    return new static($container->get('current_user'), $container->get('drupalauth4ssp.sso_user_validator'), $container->get('entity_type.manager'), $container->get('request_stack'));
   }
 
 }

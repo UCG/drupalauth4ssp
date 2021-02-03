@@ -6,12 +6,7 @@ namespace Drupal\drupalauth4ssp\EventSubscriber;
 
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
-use Drupal\drupalauth4ssp\Constants;
-use Drupal\drupalauth4ssp\Helper\CookieHelpers;
 use Drupal\drupalauth4ssp\Helper\HttpHelpers;
-use Drupal\drupalauth4ssp\UserValidatorInterface;
-use SimpleSAML\Auth\Source;
-use SimpleSAML\Auth\State;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -50,53 +45,33 @@ class LoginRouteRequestSubscriber implements EventSubscriberInterface {
   protected $requestStack;
 
   /**
-   * User attribute collector.
+   * The simpleSAMLphp integration manager.
    *
-   * @var \Drupal\drupalauth4ssp\UserAttributeCollector;
+   * @var \Drupal\drupalauth4ssp\SspIntegrationManager
    */
-  protected $userAttributeCollector;
-
-  /**
-   * Entity cache to retrieve user entities.
-   *
-   * @var \Drupal\drupalauth4ssp\EntityCache
-   */
-  protected $userEntityCache;
-
-  /**
-   * Validator used to ensure user is SSO-enabled.
-   *
-   * @var \Drupal\drupalauth4ssp\UserValidatorInterface
-   */
-  protected $userValidator;
+  protected $sspIntegrationManager;
 
   /**
    * Creates a new login route request subscriber object.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Current account.
-   * @param \Drupal\drupalauth4ssp\UserValidatorInterface $userValidator
-   *   User validator.
-   * @param \Drupal\drupalauth4ssp\EntityCache $userEntityCache
-   *   Entity cache to retrieve user entities.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   Request stack.
-   * @param \Drupal\drupalauth4ssp\UserAttributeCollector
-   *   User attribute collector.
+   * @param \Drupal\drupalauth4ssp\SspIntegrationManager $sspIntegrationManager
+   *   The simpleSAMLphp integration manager.
    */
-  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, $userEntityCache, $requestStack, $userAttributeCollector) {
+  public function __construct(AccountInterface $account, $requestStack, $sspIntegrationManager) {
     $this->account = $account;
     $this->requestStack = $requestStack;
-    $this->$userEntityCache = $userEntityCache;
-    $this->userValidator = $userValidator;
-    $this->$userAttributeCollector = $userAttributeCollector;
+    $this->sspIntegrationManager = $sspIntegrationManager;
   }
 
   /**
    * Handles request event for login routes.
    *
-   * Note: This method never returns if user parameters are passed back to
-   * simpleSAMLphp.
+   * Note: This method never returns, except in the case of exceptions, if user
+   * parameters are passed back to simpleSAMLphp.
    *
    * @todo Change deprecated use of GetResponseEvent.
    *
@@ -121,30 +96,12 @@ class LoginRouteRequestSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // If we have a query string parameter giving us a simpleSAMLphp state ID,
-    // we will assume that this request has been initiated by a simpleSAMLphp
-    // authentication source, and will return the appropriate parameters.
+    // If appropriate, complete simpleSAMLphp authentication (this will only
+    // occur if their is an appropriate simpleSAMLphp state ID and the user is
+    // is an SSO-enabled user).
+    $this->sspIntegrationManager->completeSspAuthenticationForLoginRouteIfAppropriate();
 
-    if ($currentRequest->query->has(Constants::SSP_STATE_QUERY_STRING_KEY)) {
-      // Get current user, and determine if the user is SSO-enabled.
-      $user = $this->userEntityCache->get($this->account->id());
-      if ($this->userValidator->isUserValid($user)) {
-        // Recreate the simpleSAMLphp state, assemble the data we will be
-        // passing back, and call \SimpleSAML\Auth\Source::completeAuth() with
-        // the updated state.
-        $sspState = State::loadState((string) $currentRequest->query->get(Constants::SSP_STATE_QUERY_STRING_KEY), Constants::SSP_LOGIN_SSP_STAGE_ID);
-        foreach ($collector->getAttributes($user) as $attributeName => $attribute) {
-          $sspState['Attributes'][$attributeName] = $attribute;
-        }
-
-        // Set the "is possible IdP session" cookie before proceeding.
-        CookieHelpers::setIsPossibleIdpSessionCookie();
-        Source::completeAuth($sspState);
-        // The previous call should never return.
-        assert(FALSE);
-      }
-    }
-
+    // Otherwise, redirect to the front page.
     $masterRequest = $this->requestStack->getMasterRequest();
     $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
     $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));

@@ -6,6 +6,7 @@ namespace Drupal\drupalauth4ssp;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 /**
  * Retrieves entities, either by loading them or from an in-memory cache.
@@ -128,6 +129,34 @@ class EntityCache {
     else {
       return FALSE;
     }
+  }
+
+  /**
+   * Creates an entity cache for a given entity type.
+   *
+   * @param string $entityTypeId
+   *   Entity type ID of the entity type for which we wish to create a cache.
+   * @param EntityTypeManagerInterface $entityTypeManager
+   *   Entity type manager used to retrieve the entity storage for this entity
+   *   type.
+   *
+   * @return \Drupal\drupalauth4ssp\EntityCache
+   *   The entity cache created for this entity type.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   *   Thrown if the storage handler associated with this entity type ID
+   *   couldn't be loaded.
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   *   Thrown if the entity type for the given ID doesn't exist.
+   * @throws \InvalidArugmentException
+   *    Thrown if $entityTypeId is empty.
+   */
+  public static function createForEntityType(string $entityTypeId, EntityTypeManagerInterface $entityTypeManager) {
+    if ($entityTypeId === '') {
+      throw new \InvalidArgumentException('$entityTypeId is empty.');
+    }
+
+    return new EntityCache($entityTypeManager->getStorage($entityTypeId));
   }
 
 }

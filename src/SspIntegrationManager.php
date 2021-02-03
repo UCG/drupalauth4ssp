@@ -4,9 +4,14 @@ declare(strict_types = 1);
 
 namespace Drupal\drupalauth4ssp;
 
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\drupalauth4ssp\Constants;
+use Drupal\drupalauth4ssp\Exception\InvalidOperationException;
 use Drupal\drupalauth4ssp\Helper\CookieHelpers;
 use Drupal\drupalauth4ssp\UserValidatorInterface;
+use SimpleSAML\Auth\Source;
+use SimpleSAML\Auth\State;
 
 /**
  * Manages integration with simpleSAMLphp.
@@ -19,6 +24,20 @@ class SspIntegrationManager {
    * @var \Drupal\Core\Session\AccountInterface
    */
   protected $account;
+
+  /**
+   * The current route match service.
+   *
+   * @var \Drupal\Core\Routing\RouteMatchInterface
+   */
+  protected $currentRouteMatch;
+
+  /**
+   * User attribute collector used to obtain attributes for simpleSAMLphp.
+   *
+   * @var \Drupal\drupalauth4ssp\UserAttributeCollector;
+   */
+  protected $userAttributeCollector;
 
   /**
    * Entity cache to retrieve user entities.
@@ -41,14 +60,78 @@ class SspIntegrationManager {
    *   Account.
    * @param \Drupal\drupalauth4ssp\UserValidatorInterface $userValidator
    *   User validator.
+   * @param \Drupal\Core\Routing\RouteMatchInterface $currentRouteMatch
+   *   The current route match service.
+   * @param \Drupal\drupalauth4ssp\UserAttributeCollector $userAttributeCollector
+   *   User attribute collector used to obtain attributes for simpleSAMLphp.
    * @param \Drupal\drupalauth4ssp\EntityCache $userEntityCache
    *   Entity cache to retrieve user entities.
    * 
    */
-  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, $userEntityCache) {
+  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, RouteMatchInterface $currentRouteMatch, $userAttributeCollector, $userEntityCache) {
     $this->account = $account;
     $this->userValidator = $userValidator;
+    $this->currentRouteMatch = $currentRouteMatch;
+    $this->$userAttributeCollector = $userAttributeCollector;
     $this->$userEntityCache = $userEntityCache;
+  }
+
+  /**
+   * If appropriate, updates SSP state array and completes SSP authentication.
+   *
+   * This method should can be called on the user.login route to try to finish
+   * an SSP authentication process which may have been initiated in an SSP
+   * authentication source. This method only updates the simpleSAMLphp state
+   * with the current user's attributes and calls
+   * \SimpleSAML\Auth\Source::completeAuth() under the following conditions: 1)
+   * the current user is authenticated, 2) the current user is SSO-enabled, and
+   * 3) the query string contains a simpleSAMLphp state ID parameter. Otherwise,
+   * this method returns without doing anything.
+   *
+   * Notes: If this method calls \SimpleSAML\Auth\Source::completeAuth(), it
+   * will not return unless there are exceptions.
+   *
+   * @throws \Exception
+   *   Thrown if the simpleSAMLphp stage given by
+   *   \Drupal\drupalauth4ssp\Constants::SSP_LOGIN_SSP_STAGE_ID is invalid, and
+   *   SSP does not have a suitable redirect URL.
+   * @throws \Drupal\drupalauth4ssp\Exception\InvalidOperationException
+   *   Thrown if user.login is not the current route.
+   * @throws \SimpleSAML\Error\NoState
+   *   Thrown if simpleSAMLphp state can't be found, and SSP does not have a
+   *   suitable redirect URL.
+   */
+  public function completeSspAuthenticationForLoginRouteIfAppropriate() : void {
+    if ($this->currentRouteMatch->getRouteName() !== 'user.login') {
+      throw new InvalidOperationException('The current route is not the user.login route.');
+    }
+
+    // If we have a query string parameter giving us a simpleSAMLphp state ID,
+    // we will assume that this request has been initiated by a simpleSAMLphp
+    // authentication source, and will return the appropriate parameters to
+    // simpleSAMLphp.
+    if ($currentRequest->query->has(Constants::SSP_STATE_QUERY_STRING_KEY)) {
+      // Only proceed if user is logged in.
+      if (!$this->account->isAnonymous()) {
+        // Get current user, and determine if the user is SSO-enabled.
+        $user = $this->userEntityCache->get($this->account->id());
+        if ($this->userValidator->isUserValid($user)) {
+          // Recreate the simpleSAMLphp state, assemble the data we will be
+          // passing back, and call \SimpleSAML\Auth\Source::completeAuth() with
+          // the updated state.
+
+          $sspState = State::loadState((string) $currentRequest->query->get(Constants::SSP_STATE_QUERY_STRING_KEY), Constants::SSP_LOGIN_SSP_STAGE_ID);
+          $this->sspIntegrationManager->updateSspStateWithUserAttributes($sspState);
+
+          // Set the "is possible IdP session" cookie before proceeding.
+          CookieHelpers::setIsPossibleIdpSessionCookie();
+          Source::completeAuth($sspState);
+          // The previous call should never return.
+          assert(FALSE);
+        }
+      }
+      
+    }
   }
 
   /**
@@ -72,11 +155,18 @@ class SspIntegrationManager {
    * @param array $state
    *   The simpleSAMLphp state array.
    *
-   * @throws \Drupal\drupalauth4ssp\InvalidOperationException
+   * @throws \Drupal\drupalauth4ssp\Exception\InvalidOperationException
    *   Thrown if the user is not logged in, or is not an SSO-enabled user.
    */
   public function updateSspStateWithUserAttributes(array &$state) : void {
+    if (!$this->isCurrentUserAuthenticatedAndSsoEnabled()) {
+      throw new InvalidOperationException('The user is not logged in or is not SSO-enabled.');
+    }
 
+    // Fill the state array.
+    foreach ($userAttributeCollector->getAttributes($user) as $attributeName => $attribute) {
+      $state['Attributes'][$attributeName] = $attribute;
+    }
   }
 
   /**

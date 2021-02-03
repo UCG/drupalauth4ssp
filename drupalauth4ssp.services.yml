@@ -3,46 +3,54 @@ services:
     class: Drupal\drupalauth4ssp\EventSubscriber\LoginLogoutRouteModifierSubscriber
     tags:
       - { name: event_subscriber }
-  drupalauth4ssp.no_sso_session_page_cache_request_policy:
-    class: Drupal\drupalauth4ssp\PageCacheRequestPolicy\NoSsoSessionPageCacheRequestPolicy
-    arguments: ['@drupalauth4ssp.ssp_link']
-    tags:
-      - { name: page_cache_request_policy }
-  drupalauth4ssp.normal_login_response_subscriber:
-    class: Drupal\drupalauth4ssp\EventSubscriber\NormalLoginRouteResponseSubscriber
-    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@request_stack', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
+  drupalauth4ssp.login_route_request_subscriber:
+    class: Drupal\drupalauth4ssp\EventSubscriber\LoginRouteRequestSubscriber
+    arguments: ['@current_user', '@request_stack', '@drupalauth4ssp.ssp_integration_manager']
     tags:
       - { name: event_subscriber }
-  drupalauth4ssp.normal_logout_login_request_subscriber:
-    class: Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutLoginRouteRequestSubscriber
-    arguments: ['@current_user', '@request_stack']
+  drupalauth4ssp.login_route_response_subscriber:
+    class: Drupal\drupalauth4ssp\EventSubscriber\LoginRouteResponseSubscriber
+    arguments: ['@current_user', '@request_stack', '@drupalauth4ssp.ssp_integration_manager']
     tags:
       - { name: event_subscriber }
-  drupalauth4ssp.normal_logout_response_subscriber:
-    class: Drupal\drupalauth4ssp\EventSubscriber\NormalLogoutRouteResponseSubscriber
-    arguments: ['@current_user', '@request_stack', '@drupalauth4ssp.ssp_link', '@page_cache_kill_switch']
+  drupalauth4ssp.possible_idp_session_cookie_response_subscriber:
+    class: Drupal\drupalauth4ssp\EventSubscriber\PossibleIdpSessionCookieResponseSubscriber
+    arguments: ['@current_user', '@config.factory', '@drupalauth4ssp.sso_user_validator', '@drupalauth4ssp.user_entity_cache', '@request_stack']
     tags:
       - { name: event_subscriber }
-  drupalauth4ssp.sso_login_route_interceptor_subscriber:
-    class: Drupal\drupalauth4ssp\EventSubscriber\SsoLoginRouteInterceptor
-    arguments: ['@current_user', '@drupalauth4ssp.user_validator', '@entity_type.manager', '@request_stack', '@drupalauth4ssp.url_helper']
+  drupalauth4ssp.sso_field_enabled_user_validator:
+    class: Drupal\drupalauth4ssp\UserValidator\SsoFieldEnabledUserValidator
     tags:
-      - { name: event_subscriber }
-  drupalauth4ssp.sso_user_validator_sso_field_enabled:
-    class: Drupal\drupalauth4ssp\SsoUserValidator\SsoFieldEnabledSsoUserValidator
+      - { name: drupalauth4ssp.sso_user_validator.sub_validator }
+  drupalauth4ssp.user_email_attribute_processor:
+    class: Drupal\drupalauth4ssp\UserAttributeProcessor\UserEmailProcessor
     tags:
-      - { name: drupalauth4ssp.user_validator.sub_validator }
-  drupalauth4ssp.sso_user_validator_no_root_account:
-    class: Drupal\drupalauth4ssp\SsoUserValidator\NoRootAccountSsoUserValidator
+      - { name: drupalauth4ssp.ssp_user_attribute_collector.attribute_processor }
+  drupalauth4ssp.user_entity_cache:
+    class: Drupal\drupalauth4ssp\EntityCache
+    factory: ['Drupal\drupalauth4ssp\EntityCache', 'createForEntityType']
+    arguments: ['user', '@entity_type.manager']
+  drupalauth4ssp.user_id_attribute_processor:
+    class: Drupal\drupalauth4ssp\UserAttributeProcessor\UserIdProcessor
     tags:
-    - { name: drupalauth4ssp.user_validator.sub_validator }
-  drupalauth4ssp.ssp_link:
-    class: Drupal\drupalauth4ssp\SimpleSamlPhpLink
-    arguments: ['@config.factory']
-  drupalauth4ssp.url_helper:
-    class: Drupal\drupalauth4ssp\Helper\UrlHelperService
-    arguments: ['@request_stack', '@path.validator']
-  drupalauth4ssp.user_validator:
+      - { name: drupalauth4ssp.ssp_user_attribute_collector.attribute_processor }
+  drupalauth4ssp.user_roles_attribute_processor:
+    class: Drupal\drupalauth4ssp\UserAttributeProcessor\UserRolesProcessor
+    tags:
+      - { name: drupalauth4ssp.ssp_user_attribute_collector.attribute_processor }
+  drupalauth4ssp.no_root_account_user_validator:
+    class: Drupal\drupalauth4ssp\UserValidator\NoRootAccountUserValidator
+    tags:
+      - { name: drupalauth4ssp.sso_user_validator.sub_validator }
+  drupalauth4ssp.sso_user_validator:
     class: Drupal\drupalauth4ssp\ChainedUserValidator
     tags:
-      - { name: service_collector, tag: 'drupalauth4ssp.user_validator.sub_validator', call: addValidator }
+      - { name: service_collector, tag: 'drupalauth4ssp.sso_user_validator.sub_validator', call: addValidator }
+  drupalauth4ssp.ssp_integration_manager:
+    class: Drupal\drupalauth4ssp\SspIntegrationManager
+    arguments: ['@current_user', '@drupalauth4ssp.sso_user_validator', '@current_route_match', '@drupalauth4ssp.ssp_user_attribute_collector', '@drupalauth4ssp.user_entity_cache']
+  drupalauth4ssp.ssp_user_attribute_collector:
+    class: Drupal\drupalauth4ssp\UserAttributeCollector
+    tags:
+      - { name: service_collector, tag: 'drupalauth4ssp.ssp_user_attribute_collector.attribute_processor', call: addAttributeProcessor }
+

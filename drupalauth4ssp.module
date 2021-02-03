@@ -9,13 +9,21 @@ declare(strict_types = 1);
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\drupalauth4ssp\Constants;
 
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function drupalauth4ssp_form_user_login_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $form_state, string $form_id) {
   // Add submit handler to change form redirect URL.
   $form['#submit'][] = 'drupalauth4ssp_user_login_submit';
+
+  // If the query string indicates that we are performing SP-initiated login, go
+  // ahead and add some validation to ensure the user isn't logged in as a
+  // non-SSO-enabled user.
+  if (\Drupal::routeMatch()->getRouteName() === 'user.login' && \Drupal::request()->query->has(Constants::SSP_STATE_QUERY_STRING_KEY)) {
+    $form['#validate'][] = 'drupalauth4ssp_user_login_form_validate';
+  }
 }
 
 /**
@@ -34,5 +42,30 @@ function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state)
   $form_state->setRedirectUrl(Url::fromRoute('<front>')->setAbsolute());
 }
 
-// @todo Need to bring back the validation code for SSO-enabled users (bring in
-// from drupalauth4ssp_extra_features module).
+/**
+ * Checks to ensure the user is not attempting to perform SSO as a local user.
+ *
+ * @param array $form
+ *   Login form.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   Form state.
+ */
+function drupalauth4ssp_extra_features_user_login_form_validate($form, FormStateInterface $form_state) {
+  // First check to ensure there are no other validation errors.
+  // For security reasons, we do not want to inform the user of the nature of
+  // this error unless they are otherwise correcly authenticated.
+  if (empty($form_state->getErrors())) {
+    // Get user object, and determine whether SSO capability is enabled for this
+    // user. In addition, ensure that if the user is the root user, SSO is
+    // disabled.
+    $userArray = \Drupal::service('entity_type.manager')
+      ->getStorage('user')
+      ->loadByProperties(['name' => $form_state->getValue('name')]);
+    $user = reset($userArray);
+    $isSsoEnabled = $user->get('field_sso_enabled_user')->value && $user->get('uid')->value != 1;
+    if (!$isSsoEnabled) {
+      // No SSO capability => can't login using this method.
+      $form_state->setErrorByName('name', 'This user is a local user, associated with this site only, for which single-sign-on cannot be performed.');
+    }
+  }
+}

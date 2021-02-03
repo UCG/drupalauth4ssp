@@ -39,7 +39,7 @@ class SettingsForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('drupalauth4ssp.settings')
-      ->set('authsource', $form_state->getValue('is_possible_idp_session_cookie_name'))
+      ->set('is_possible_idp_session_cookie_name', $form_state->getValue('is_possible_idp_session_cookie_name'))
       ->save();
     parent::submitForm($form, $form_state);
   }

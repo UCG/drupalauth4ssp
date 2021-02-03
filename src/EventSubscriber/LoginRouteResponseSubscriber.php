@@ -4,12 +4,8 @@ declare(strict_types = 1);
 
 namespace Drupal\drupalauth4ssp\EventSubscriber;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\Url;
-use Drupal\drupalauth4ssp\Helper\HttpHelpers;
-use Drupal\drupalauth4ssp\UserValidatorInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -38,42 +34,33 @@ class LoginRouteResponseSubscriber implements EventSubscriberInterface {
   protected $requestStack;
 
   /**
-   * Entity cache to retrieve user entities.
+   * The simpleSAMLphp integration manager.
    *
-   * @var \Drupal\drupalauth4ssp\EntityCache
+   * @var \Drupal\drupalauth4ssp\SspIntegrationManager
    */
-  protected $userEntityCache;
-
-  /**
-   * Validator used to ensure user is SSO-enabled.
-   *
-   * @var \Drupal\drupalauth4ssp\UserValidatorInterface
-   */
-  protected $userValidator;
+  protected $sspIntegrationManager;
 
   /**
    * Creates a normal login route response subscriber instance.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Account.
-   * @param \Drupal\drupalauth4ssp\UserValidatorInterface $userValidator
-   *   User validator.
-   * @param \Drupal\drupalauth4ssp\EntityCache $userEntityCache
-   *   Entity cache to retrieve user entities.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   Request stack.
+   * @param \Drupal\drupalauth4ssp\SspIntegrationManager $sspIntegrationManager
+   *   The simpleSAMLphp integration manager.
    */
-  public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, $userEntityCache, $requestStack) {
+  public function __construct(AccountInterface $account, $requestStack, $sspIntegrationManager) {
     $this->account = $account;
-    $this->userValidator = $userValidator;
-    $this->$userEntityCache = $userEntityCache;
     $this->requestStack = $requestStack;
+    $this->sspIntegrationManager = $sspIntegrationManager;
   }
 
   /**
    * Handles response event for login route.
    *
-   * Notes: If control is passed to simpleSAMLphp, this method never returns.
+   * Notes: If control is passed to simpleSAMLphp, this method never returns,
+   * except when there is an exception.
    *
    * @todo Switch from using deprecated FilterResponseEvent.
    *
@@ -101,30 +88,17 @@ class LoginRouteResponseSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // We will be redirecting to the home page.
-    $returnUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
-
-    $masterRequest = $this->requestStack->getMasterRequest();
-
-    // If user isn't SSO-enabled, initiate redirect to $returnUrl anyway for the
-    // sake of consistency.
-    if (!$this->userValidator->isUserValid($this->entityTypeManager->getStorage('user')->load($this->account->id()))) {
-      $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
-      return;
-    }
-
-    // Initiate SSP authentication. Returns and continues if already logged in.
-    $this->sspLink->initiateAuthenticationIfNecessary($returnUrl);
-    // For consistency, initiate redirect to $returnUrl even if we were already
-    // authenticated.
-    $event->setResponse(new RedirectResponse($returnUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod())));
+    // If appropriate, complete simpleSAMLphp authentication (this will only
+    // occur if their is an appropriate simpleSAMLphp state ID and the user is
+    // an SSO-enabled user).
+    $this->sspIntegrationManager->completeSspAuthenticationForLoginRouteIfAppropriate();
   }
 
   /**
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    return [KernelEvents::RESPONSE => ['handleNormalLoginResponse']];
+    return [KernelEvents::RESPONSE => ['handleLoginResponse']];
   }
 
 }
