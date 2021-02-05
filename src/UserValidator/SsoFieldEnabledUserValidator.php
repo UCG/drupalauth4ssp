@@ -10,7 +10,7 @@ use Drupal\user\UserInterface;
 /**
  * Ensures only users with the SSO-enabled field set to 'TRUE' are allowed.
  */
-class SsoFieldEnabledSsoUserValidator implements UserValidatorInterface {
+class SsoFieldEnabledUserValidator implements UserValidatorInterface {
 
   /**
    * {@inheritdoc}

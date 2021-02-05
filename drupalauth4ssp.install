@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Drupal Auth for simpleSAMLphp install/update/schema hook implementations.
+ * Drupal Auth for SimpleSAMLphp install/update/uninstall hook implementations.
  */
 
 declare(strict_types = 1);

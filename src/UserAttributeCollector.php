@@ -14,11 +14,12 @@ use Drupal\user\UserInterface;
  * attributes of the just-logged-in user should be sent back to the IdP. This
  * service is responsible for collecting and returning these attributes in a
  * form that can be processed by simpleSAMLphp.
- * Consumers of this service can add attributes to be collected by directly (or
- * indirectly, by adding a service implementing
+ *
+ * Consumers of this service can add attributes to be collected by adding a
+ * service implementing
  * @see Drupal\drupalauth4ssp\UserAttributeProcessorInterface and tagging this
  * service with the drupalauth4ssp.user_attribute_collector.attribute_processor
- * tag) calling the addAttributeProcessor() method.
+ * tag, or by directly calling the addAttributeProcessor() method.
  *
  * To obtain the processed attributes in a form that can be added to the
  * simpleSAMLphp $state array, call getAttributes() and use a foreach() loop
@@ -46,7 +47,7 @@ class UserAttributeCollector {
    *   Attribute processor to add.
    */
   public function addAttributeProcessor(UserAttributeProcessorInterface $attributeProcessor) : void {
-    $attributeProcessors[] = $attributeProcessor;
+    $this->attributeProcessors[] = $attributeProcessor;
   }
 
   /**
@@ -59,7 +60,7 @@ class UserAttributeCollector {
    *   $state['Attributes'][$attributeName] = $attribute;
    * }
    *
-   * @return Traversable
+   * @return \Traversable
    *   Iterator which generates the attributes. Values in the iterator can be
    *   accessed with a foreach() loop.
    */

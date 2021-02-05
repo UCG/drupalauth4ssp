@@ -29,7 +29,7 @@ class UserRolesProcessor implements UserAttributeProcessorInterface {
    * Returns the roles attribute of $user.
    *
    * Returns the roles of $user in a form that can be added to the simpleSAMLphp
-   * $state array for returning to the SP. Does not locked roles
+   * $state array for returning to the SP. Does not return locked roles
    * (authenticated/anonymous).
    *
    * @param UserInterface $user

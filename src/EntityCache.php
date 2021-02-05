@@ -48,7 +48,7 @@ class EntityCache {
    * @return void
    */
   public function clear() : void {
-    $cache = [];
+    $this->cache = [];
   }
 
   /**
@@ -66,7 +66,7 @@ class EntityCache {
    *
    * @throws \InvalidArgumentException
    *   $id is empty.
-   * @throws \InvalidOperationException
+   * @throws \InvalidArgumentException
    *   $id does not correspond to an actual entity, either in the cache or that
    *   can be loaded by Drupal.
    */
@@ -75,10 +75,10 @@ class EntityCache {
       throw new \InvalidArgumentException('$id is empty.');
     }
 
-    if (array_key_exists($id, $cache)) {
+    if (array_key_exists($id, $this->cache)) {
       // Return the cached entity.
-      assert($cache[$id]);
-      return $cache[$id];
+      assert($this->cache[$id]);
+      return $this->cache[$id];
     }
     else {
       // Grab the entity from storage.
@@ -87,7 +87,7 @@ class EntityCache {
         throw new \InvalidArgumentException('No entity found for id \'' . $id . '\'.');
       }
 
-      $cache[$id] = $entity;
+      $this->cache[$id] = $entity;
       return $entity;
     }
   }
@@ -107,7 +107,7 @@ class EntityCache {
       return FALSE;
     }
     else {
-      return array_key_exists($id, $cache);
+      return array_key_exists($id, $this->cache);
     }
   }
 
@@ -122,8 +122,8 @@ class EntityCache {
    *   returns 'FALSE'.
    */
   public function remove(string $id) : bool {
-    if ($id !== '' && array_key_exists($id, $cache)) {
-      unset($cache[$id]);
+    if ($id !== '' && array_key_exists($id, $this->cache)) {
+      unset($this->cache[$id]);
       return TRUE;
     }
     else {

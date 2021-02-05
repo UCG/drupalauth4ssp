@@ -26,7 +26,9 @@ final class Constants {
 
   /**
    * Identifier for the simpleSAMLphp stage corresponding to an auth request.
+   *
+   * @var string
    */
-  public const SSP_LOGIN_SSP_STAGE_ID = 'drupalauth:authentication';
+  public const SSP_LOGIN_STAGE_ID = 'drupalauth:authentication';
 
 }

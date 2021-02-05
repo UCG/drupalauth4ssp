@@ -8,9 +8,9 @@ use Drupal\drupalauth4ssp\UserValidatorInterface;
 use Drupal\user\UserInterface;
 
 /**
- * Represents a validator that doesn't allow a root account to be SSO-enabled.
+ * Represents a validator that doesn't allow root accounts.
  */
-class NoRootAccountSsoUserValidator implements UserValidatorInterface {
+class NoRootAccountUserValidator implements UserValidatorInterface {
 
   /**
    * {@inheritdoc}

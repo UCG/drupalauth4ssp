@@ -48,9 +48,8 @@ services:
       - { name: service_collector, tag: 'drupalauth4ssp.sso_user_validator.sub_validator', call: addValidator }
   drupalauth4ssp.ssp_integration_manager:
     class: Drupal\drupalauth4ssp\SspIntegrationManager
-    arguments: ['@current_user', '@drupalauth4ssp.sso_user_validator', '@current_route_match', '@drupalauth4ssp.ssp_user_attribute_collector', '@drupalauth4ssp.user_entity_cache']
+    arguments: ['@current_user', '@drupalauth4ssp.sso_user_validator', '@current_route_match', '@drupalauth4ssp.ssp_user_attribute_collector', '@drupalauth4ssp.user_entity_cache', '@request_stack']
   drupalauth4ssp.ssp_user_attribute_collector:
     class: Drupal\drupalauth4ssp\UserAttributeCollector
     tags:
       - { name: service_collector, tag: 'drupalauth4ssp.ssp_user_attribute_collector.attribute_processor', call: addAttributeProcessor }
-

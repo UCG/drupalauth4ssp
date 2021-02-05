@@ -40,6 +40,7 @@ final class CookieHelpers {
 
     // Otherwise, load up the SiteInformation class, from which we can retrieve
     // information about the current environment, domain, etc.
+    // @todo Determine if using DRUPAL_ROOT is safe.
     require_once(DRUPAL_ROOT . '/../General/SiteInformation.php');
 
     // Determine the cookie domain, depending on the current environment.
@@ -78,7 +79,7 @@ final class CookieHelpers {
     // Grab the cookie's name.
     $isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
 
-    setcookie($isPossibleIdpSessionCookieName, 'TRUE', static::getIsPossibleIdpSessionCookieExpiration(), '/', CookieHelpers::getIsPossibleIdpSessionCookieDomain());
+    setcookie($isPossibleIdpSessionCookieName, 'TRUE', static::getIsPossibleIdpSessionCookieExpiration(), '/', static::getIsPossibleIdpSessionCookieDomain());
   }
 
   /**
@@ -88,7 +89,7 @@ final class CookieHelpers {
     // Grab the cookie's name.
     $isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
 
-    setcookie($isPossibleIdpSessionCookieName, '', time() - 3600, '/', CookieHelpers::getIsPossibleIdpSessionCookieDomain());
+    setcookie($isPossibleIdpSessionCookieName, '', time() - 3600, '/', static::getIsPossibleIdpSessionCookieDomain());
   }
 
 }

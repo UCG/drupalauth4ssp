@@ -80,7 +80,7 @@ class LoginRouteRequestSubscriber implements EventSubscriberInterface {
    *
    * @throws \Exception
    *   Thrown if the simpleSAMLphp stage given by
-   *   \Drupal\drupalauth4ssp\Constants::SSP_LOGIN_SSP_STAGE_ID is invalid, and
+   *   \Drupal\drupalauth4ssp\Constants::SSP_LOGIN_STAGE_ID is invalid, and
    *   SSP does not have a suitable redirect URL.
    * @throws \SimpleSAML\Error\NoState
    *   Thrown if simpleSAMLphp state can't be found, and SSP does not have a

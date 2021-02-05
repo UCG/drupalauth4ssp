@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Drupal Auth for simpleSAMLphp hook implementation.
+ * Drupal Auth for SimpleSAMLphp hook implementations.
  */
 
 declare(strict_types = 1);
@@ -14,7 +14,7 @@ use Drupal\drupalauth4ssp\Constants;
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $form_state, string $form_id) {
+function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $form_state, string $form_id) : void {
   // Add submit handler to change form redirect URL.
   $form['#submit'][] = 'drupalauth4ssp_user_login_submit';
 
@@ -37,7 +37,7 @@ function drupalauth4ssp_form_user_login_form_alter(&$form, FormStateInterface $f
  * @param \Drupal\Core\Form\FormStateInterface $form_state
  *   Form state.
  */
-function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state) {
+function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state) : void {
   // Send the user to the front page.
   $form_state->setRedirectUrl(Url::fromRoute('<front>')->setAbsolute());
 }
@@ -50,20 +50,18 @@ function drupalauth4ssp_user_login_submit($form, FormStateInterface $form_state)
  * @param \Drupal\Core\Form\FormStateInterface $form_state
  *   Form state.
  */
-function drupalauth4ssp_extra_features_user_login_form_validate($form, FormStateInterface $form_state) {
+function drupalauth4ssp_extra_features_user_login_form_validate($form, FormStateInterface $form_state) : void {
   // First check to ensure there are no other validation errors.
   // For security reasons, we do not want to inform the user of the nature of
   // this error unless they are otherwise correcly authenticated.
   if (empty($form_state->getErrors())) {
-    // Get user object, and determine whether SSO capability is enabled for this
-    // user. In addition, ensure that if the user is the root user, SSO is
-    // disabled.
+    // Get user object, and determine if this user is permitted to use single
+    // sign-on.
     $userArray = \Drupal::service('entity_type.manager')
       ->getStorage('user')
       ->loadByProperties(['name' => $form_state->getValue('name')]);
     $user = reset($userArray);
-    $isSsoEnabled = $user->get('field_sso_enabled_user')->value && $user->get('uid')->value != 1;
-    if (!$isSsoEnabled) {
+    if (!\Drupal::service('drupalauth4ssp.sso_user_validator')->isUserValid($user)) {
       // No SSO capability => can't login using this method.
       $form_state->setErrorByName('name', 'This user is a local user, associated with this site only, for which single-sign-on cannot be performed.');
     }
