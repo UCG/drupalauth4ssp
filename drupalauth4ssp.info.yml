@@ -1,6 +1,5 @@
 name: DrupalAuth for SimpleSAMLphp
 type: module
 description: This module allows a Drupal site to act as an identity provider using simpleSAMLphp.
-core: 8.x
-core_version_requirement: ^8 || ^9
+core_version_requirement: '>=8.9.11 <= 8.9.13 || >= 9.0.0 <= 9.0.11'
 configure: drupalauth4ssp.settings
