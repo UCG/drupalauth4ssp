@@ -80,6 +80,7 @@ class UserLogoutController extends ControllerBase implements ContainerInjectionI
    */
   public function handle() : RedirectResponse {
     $masterRequest = $this->requestStack->getMasterRequest();
+    $homePageUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
 
     // Only logout if user is actually logged in.
     if (!$this->account->isAnonymous()) {
@@ -104,7 +105,6 @@ class UserLogoutController extends ControllerBase implements ContainerInjectionI
     // user.logout behavior for authenticated users and that for unauthenticated
     // users. For reasons such consistency is important, @see
     // \Drupal\drupalauth4ssp\EventSubscriber\LoginRouteRequestSubscriber.
-    $homePageUrl = Url::fromRoute('<front>')->setAbsolute()->toString();
     return new RedirectResponse($homePageUrl, HttpHelpers::getAppropriateTemporaryRedirect($masterRequest->getMethod()));
   }
 
