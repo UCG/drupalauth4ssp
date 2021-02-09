@@ -97,8 +97,11 @@ class LoginRouteRequestSubscriber implements EventSubscriberInterface {
     // If appropriate, complete simpleSAMLphp authentication (this will only
     // occur if their is an appropriate simpleSAMLphp state ID and the user is
     // is an SSO-enabled user). This call won't return if the simpleSAMLphp
-    // authentication is completed, except in the case of exceptions.
-    $this->sspIntegrationManager->completeSspAuthenticationForLoginRouteIfAppropriate();
+    // authentication is completed, except in the case of exceptions. We only
+    // want this called on the main request, not on subrequests.
+    if ($event->isMasterRequest()) {
+      $this->sspIntegrationManager->completeSspAuthenticationForLoginRouteIfAppropriate();
+    }
 
     // Otherwise, redirect to the front page.
     $masterRequest = $this->requestStack->getMasterRequest();

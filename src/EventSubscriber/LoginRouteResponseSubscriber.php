@@ -68,6 +68,11 @@ class LoginRouteResponseSubscriber implements EventSubscriberInterface {
    *   Response event.
    */
   public function handleLoginResponse($event) : void {
+    // Don't do anything on subrequests.
+    if (!$event->isMasterRequest()) {
+      return;
+    }
+
     $request = $event->getRequest();
 
     // If we're not on the login route, get out.

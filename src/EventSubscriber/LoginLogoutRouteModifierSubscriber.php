@@ -38,7 +38,7 @@ class LoginLogoutRouteModifierSubscriber extends RouteSubscriberBase {
     $logoutRoute = $collection->get('user.logout');
     if (!empty($logoutRoute)) {
       // If the route is defined, ensure anyone can access this route.
-      $logoutRoute->setRequirements(['_controller' => 'TRUE']);
+      $logoutRoute->setRequirements(['_access' => 'TRUE']);
       // Set the controller to our custom controller.
       $logoutRoute->setDefault('_controller', '\\Drupal\\drupalauth4ssp\\Controller\\UserLogoutController::handle');
       // And ensure response are never cached.
