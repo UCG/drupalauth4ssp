@@ -42,7 +42,7 @@ function drupalauth4ssp_install() {
 /**
  * Implements hook_uninstall.
  */
-function drupalauth4ssp_extra_features_uninstall() {
+function drupalauth4ssp_uninstall() {
   // Remove the "SSO-Enabled user" field (only necessary to remove field
   // storage, since the field has a dependency on the storage).
   FieldStorageConfig::loadByName('user', 'field_sso_enabled_user')->delete();
