@@ -11,6 +11,7 @@ use Drupal\Core\Url;
 use Drupal\drupalauth4ssp\Helper\HttpHelpers;
 use Drupal\drupalauth4ssp\Helper\UrlHelpers;
 use Drupal\drupalauth4ssp\UserValidatorInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
