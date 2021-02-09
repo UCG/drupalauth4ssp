@@ -67,7 +67,7 @@ class UserLogoutController extends ControllerBase implements ContainerInjectionI
   public function __construct(AccountInterface $account, UserValidatorInterface $userValidator, $userEntityCache, $requestStack) {
     $this->account = $account;
     $this->userValidator = $userValidator;
-    $this->$userEntityCache = $userEntityCache;
+    $this->userEntityCache = $userEntityCache;
     $this->requestStack = $requestStack;
   }
 
@@ -84,7 +84,7 @@ class UserLogoutController extends ControllerBase implements ContainerInjectionI
     // Only logout if user is actually logged in.
     if (!$this->account->isAnonymous()) {
       // Determine whether the current user is SSO-enabled.
-      if ($this->userValidator->isUserValid($this->$userEntityCache->get($this->account->id()))) {
+      if ($this->userValidator->isUserValid($this->userEntityCache->get($this->account->id()))) {
         // Go ahead and initiate single logout.
         // Build the single logout URL -- head back to the home page when we're
         // done.
@@ -112,7 +112,7 @@ class UserLogoutController extends ControllerBase implements ContainerInjectionI
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    return new static($container->get('current_user'), $container->get('drupalauth4ssp.sso_user_validator'), $container->get('entity_type.manager'), $container->get('request_stack'));
+    return new static($container->get('current_user'), $container->get('drupalauth4ssp.sso_user_validator'), $container->get('drupalauth4ssp.user_entity_cache'), $container->get('request_stack'));
   }
 
 }

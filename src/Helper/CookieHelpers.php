@@ -34,8 +34,8 @@ final class CookieHelpers {
    */
   public static function getIsPossibleIdpSessionCookieDomain() : string {
     // Returned cached value if set.
-    if ($isPossibleIdpSessionCookieDomain !== NULL) {
-      return $isPossibleIdpSessionCookieDomain;
+    if (static::$isPossibleIdpSessionCookieDomain !== NULL) {
+      return static::$isPossibleIdpSessionCookieDomain;
     }
 
     // Otherwise, load up the SiteInformation class, from which we can retrieve
@@ -47,16 +47,16 @@ final class CookieHelpers {
     $environmentType = SiteInformation::getEnvironmentType();
     switch ($environmentType) {
       case SiteInformation::DDEV_ENVIRONMENT:
-        $isPossibleIdpSessionCookieDomain = '.ddev.site';
+        static::$isPossibleIdpSessionCookieDomain = '.ddev.site';
         break;
       default:
         // For now, just use full domain name if not using DDev.
-        $isPossibleIdpSessionCookieDomain = SiteInformation::getFullDomainName();
+        static::$isPossibleIdpSessionCookieDomain = SiteInformation::getFullDomainName();
         break;
     }
 
-    assert($isPossibleIdpSessionCookieDomain !== NULL);
-    return $isPossibleIdpSessionCookieDomain;
+    assert(static::$isPossibleIdpSessionCookieDomain !== NULL);
+    return static::$isPossibleIdpSessionCookieDomain;
   }
 
   /**
@@ -77,9 +77,9 @@ final class CookieHelpers {
    */
   public static function setIsPossibleIdpSessionCookie() : void {
     // Grab the cookie's name.
-    $isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
+    static::$isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
 
-    setcookie($isPossibleIdpSessionCookieName, 'TRUE', static::getIsPossibleIdpSessionCookieExpiration(), '/', static::getIsPossibleIdpSessionCookieDomain());
+    setcookie(static::$isPossibleIdpSessionCookieName, 'TRUE', static::getIsPossibleIdpSessionCookieExpiration(), '/', static::getIsPossibleIdpSessionCookieDomain());
   }
 
   /**
@@ -87,9 +87,9 @@ final class CookieHelpers {
    */
   public static function clearIsPossibleIdpSessionCookie() : void {
     // Grab the cookie's name.
-    $isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
+    static::$isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
 
-    setcookie($isPossibleIdpSessionCookieName, '', time() - 3600, '/', static::getIsPossibleIdpSessionCookieDomain());
+    setcookie(static::$isPossibleIdpSessionCookieName, '', time() - 3600, '/', static::getIsPossibleIdpSessionCookieDomain());
   }
 
 }
