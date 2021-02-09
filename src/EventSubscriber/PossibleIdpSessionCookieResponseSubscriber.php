@@ -91,6 +91,11 @@ class PossibleIdpSessionCookieResponseSubscriber implements EventSubscriberInter
    *   Response event.
    */
   public function handleResponse($event) : void {
+    // Only set cookies on master request.
+    if (!$event->isMasterRequest()) {
+      return;
+    }
+
     // Determine if "is possible IdP session" cookie should be set.
     if ($this->account->isAnonymous()) {
       $isPossibleIdpSession = FALSE;
