@@ -41,4 +41,31 @@ class UserIdProcessor implements UserAttributeProcessorInterface {
     return [$user->id()];
   }
 
+  /**
+   * Attempts to pull the user ID from the set of simpleSAMLphp attributes.
+   *
+   * This method is essentially the reverse of getAttribute().
+   *
+   * @param array $attributes
+   *   Array of simpleSAMLphp attributes.
+   *
+   * @return int
+   *   User ID.
+   *
+   * @throws \InvalidArgumentException
+   *   Thrown if $attributes does not contain a valid user ID attribute.
+   */
+  public function getUid(array $attributes) : int {
+    if (!array_key_exists($this->getAttributeName(), $attributes)) {
+      throw new \InvalidArgumentException('User ID does not exist in $attributes.');
+    }
+
+    $userId = $attributes[$this->getAttributeName()];
+    if (!is_int($userId) || $userId < 0) {
+      throw new \InvalidArgumentException('User ID in $attributes is invalid.');
+    }
+
+    return $userId;
+  }
+
 }
