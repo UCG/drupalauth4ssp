@@ -41,7 +41,7 @@ class AutoSessionNameSessionConfiguration extends SessionConfiguration {
       return parent::getName($request);
     }
 
-    $existingCookieName = getExistingCookieName($request);
+    $existingCookieName = $this->getExistingCookieName($request);
     if ($existingCookieName === NULL) {
       return ($request->isSecure() ? "SSESS" : "SESS") . parent::getUnprefixedName($request);
     }
@@ -108,7 +108,7 @@ class AutoSessionNameSessionConfiguration extends SessionConfiguration {
       return parent::getUnprefixedName($request);
     }
 
-    $existingCookieName = getExistingCookieName($request);
+    $existingCookieName = $this->getExistingCookieName($request);
     if ($existingCookieName === NULL) {
       return parent::getUnprefixedName($request);
     }
