@@ -25,7 +25,8 @@ class Drupalauth4sspServiceProvider extends ServiceProviderBase {
    */
   public function alter(ContainerBuilder $container) {
     // Check to see if we are coming from simpleSAMLphp.
-    if (mb_substr($request->getBasePath(), 0, mb_strlen('/simplesaml')) === '/simplesaml') {
+    global $isDrupalRunningFromSimpleSamlPhp;
+    if ($isDrupalRunningFromSimpleSamlPhp) {
       // If so, try to alter the session config definition.
       if ($container->hasDefinition('session')) {
         $sessionConfigurationDefinition = $container->getDefinition('session_configuration');
