@@ -73,7 +73,7 @@ class AutoSessionNameSessionConfiguration extends SessionConfiguration {
     foreach ($request->cookies->all() as $cookieName => $cookie) {
       // See if the cookie starts with "SESS" or "SSESS".
       if ((mb_substr($cookieName, 0, 4) === 'SESS') || (mb_substr($cookieName, 0, 5) === 'SSESS')) {
-        if ($validCookieFound) {
+        if ($sessionCookieName !== NULL) {
           // If we already found a valid cookie, blow up.
           throw new InvalidOperationException('More than one session cookie appears to be set on $request.');
         }
