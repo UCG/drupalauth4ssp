@@ -143,6 +143,17 @@ class SspIntegrationManager {
   }
 
   /**
+   * Tells whether the current user is authenticated and SSO-enabled.
+   *
+   * @return bool
+   *   Returns 'TRUE' if the current user is both authenticated and SSO-enabled,
+   *   else returns 'FALSE'.
+   */
+  public function isCurrentUserAuthenticatedAndSsoEnabled() : bool {
+    return (!$this->account->isAnonymous() && $this->userValidator->isUserValid($this->userEntityCache->get($this->account->id()))) ? TRUE : FALSE;
+  }
+
+  /**
    * Performs a Drupal logout if necessary.
    *
    * This method is to be called from a simpleSAMLphp authentication source.
@@ -189,17 +200,6 @@ class SspIntegrationManager {
     foreach ($this->userAttributeCollector->getAttributes($user) as $attributeName => $attribute) {
       $state['Attributes'][$attributeName] = $attribute;
     }
-  }
-
-  /**
-   * Tells whether the current user is authenticated and SSO-enabled.
-   *
-   * @return bool
-   *   Returns 'TRUE' if the current user is both authenticated and SSO-enabled,
-   *   else returns 'FALSE'.
-   */
-  protected function isCurrentUserAuthenticatedAndSsoEnabled() : bool {
-    return (!$this->account->isAnonymous() && $this->userValidator->isUserValid($this->userEntityCache->get($this->account->id()))) ? TRUE : FALSE;
   }
 
 }
