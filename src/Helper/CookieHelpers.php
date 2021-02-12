@@ -77,9 +77,9 @@ final class CookieHelpers {
    */
   public static function setIsPossibleIdpSessionCookie() : void {
     // Grab the cookie's name.
-    static::$isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
+    $isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
 
-    setcookie(static::$isPossibleIdpSessionCookieName, 'TRUE', static::getIsPossibleIdpSessionCookieExpiration(), '/', static::getIsPossibleIdpSessionCookieDomain());
+    setcookie($isPossibleIdpSessionCookieName, 'TRUE', static::getIsPossibleIdpSessionCookieExpiration(), '/', static::getIsPossibleIdpSessionCookieDomain());
   }
 
   /**
@@ -87,9 +87,9 @@ final class CookieHelpers {
    */
   public static function clearIsPossibleIdpSessionCookie() : void {
     // Grab the cookie's name.
-    static::$isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
+    $isPossibleIdpSessionCookieName = \Drupal::configFactory()->get('drupalauth4ssp.settings')->get('is_possible_idp_session_cookie_name');
 
-    setcookie(static::$isPossibleIdpSessionCookieName, '', time() - 3600, '/', static::getIsPossibleIdpSessionCookieDomain());
+    setcookie($isPossibleIdpSessionCookieName, '', time() - 3600, '/', static::getIsPossibleIdpSessionCookieDomain());
   }
 
 }
