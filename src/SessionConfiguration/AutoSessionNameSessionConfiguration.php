@@ -19,11 +19,13 @@ class AutoSessionNameSessionConfiguration extends SessionConfiguration {
   /**
    * Gets the session name.
    *
-   * Looks for a session cookie in $request starting with "SESS" or "SSESS", and
-   * returns it if it exists. If more than one such session cookie exists, this
-   * method will throw an exception. If no such cookie exists, this method will
-   * use an appropriate prefix ("SESS" for unsecure requests; "SSESS" for secure
-   * requests) and the base class's getUnprefixedName() method.
+   * If we are not running from simpleSAMLphp, uses the base class's getName()
+   * method. Otherwise, looks for a session cookie in $request starting with
+   * "SESS" or "SSESS", and returns it if it exists. If more than one such
+   * session cookie exists, this method will throw an exception. If no such
+   * cookie exists, this method will use an appropriate prefix ("SESS" for
+   * unsecure requests; "SSESS" for secure requests) and the base class's
+   * getUnprefixedName() method.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   Request.
@@ -33,6 +35,12 @@ class AutoSessionNameSessionConfiguration extends SessionConfiguration {
    *   session cookie with a valid name.
    */
   protected function getName(Request $request) {
+    // Check to see if we are coming from simpleSAMLphp.
+    global $isDrupalRunningFromSimpleSamlPhp;
+    if (!$isDrupalRunningFromSimpleSamlPhp) {
+      return parent::getName($request);
+    }
+
     $existingCookieName = getExistingCookieName($request);
     if ($existingCookieName === NULL) {
       return ($request->isSecure() ? "SSESS" : "SESS") . parent::getUnprefixedName($request);
@@ -79,10 +87,12 @@ class AutoSessionNameSessionConfiguration extends SessionConfiguration {
   /**
    * Gets the unprefixed session name.
    *
-   * Looks for a session cookie in $request starting with "SESS" or "SSESS", and
-   * uses the unprefixed part of it, if it exists. If more than one such session
-   * cookie exists, this method will throw an exception. If no such cookie
-   * exists, this method will use the base class's getUnprefixedName() method.
+   * If we are not running from simpleSAMLphp, uses the base class's getName()
+   * method. Otherwise, looks for a session cookie in $request starting with
+   * "SESS" or "SSESS", and uses the unprefixed part of it, if it exists. If
+   * more than one such session cookie exists, this method will throw an
+   * exception. If no such cookie exists, this method will use the base class's
+   * getUnprefixedName() method.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   Request.
@@ -92,6 +102,12 @@ class AutoSessionNameSessionConfiguration extends SessionConfiguration {
    *   session cookie with a valid name.
    */
   protected function getUnprefixedName(Request $request) {
+    // Check to see if we are coming from simpleSAMLphp.
+    global $isDrupalRunningFromSimpleSamlPhp;
+    if (!$isDrupalRunningFromSimpleSamlPhp) {
+      return parent::getUnprefixedName($request);
+    }
+
     $existingCookieName = getExistingCookieName($request);
     if ($existingCookieName === NULL) {
       return parent::getUnprefixedName($request);
