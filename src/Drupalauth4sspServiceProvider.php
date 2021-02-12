@@ -28,7 +28,7 @@ class Drupalauth4sspServiceProvider extends ServiceProviderBase {
     // Try to alter the session config definition.
     if ($container->hasDefinition('session')) {
       $sessionConfigurationDefinition = $container->getDefinition('session_configuration');
-      $definition->setClass('Drupal\drupalauth4ssp\SessionConfiguration\AutoSessionNameSessionConfiguration');
+      $sessionConfigurationDefinition->setClass('Drupal\drupalauth4ssp\SessionConfiguration\AutoSessionNameSessionConfiguration');
     }
   }
 
